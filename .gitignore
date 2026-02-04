@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# FAISS index
+*.faiss
+*.pkl
+
+# Arquivos fonte (não fazem parte do projeto)
+/DEVELOPMENT_CONTEXT.md
+/PROPOSAL.md
+/BASE_INTERACTION.json
+
+# Alembic
+alembic/versions/__pycache__/

@@ -1,0 +1,350 @@
+[
+  {
+    "user_input": "oi, to precisando de cesta basica urgente, tem como me ajudar?",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Olá. Entendo a urgência da sua situação e estamos aqui para apoiar.\n\nA 'Mãos que Ajudam' centraliza a distribuição de cestas para famílias cadastradas. Para agilizar seu atendimento:\n\n1. Entre em contato agora pelo WhatsApp: (11) 98765-4321.\n2. Ou compareça à nossa sede: Rua da Esperança, 123 - Centro (seg a sex, 9h às 17h).\n\nFaremos o possível para atendê-lo o quanto antes."
+  },
+  {
+    "user_input": "qual a chave pix de vcs?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Que atitude maravilhosa! Sua generosidade transforma vidas.\n\n🔑 **Nossa chave PIX (E-mail):**\ndoacoes@maosqueajudam.org.br\n(CNPJ: 12.345.678/0001-90)\n\nVocê também pode doar pelo site: www.maosqueajudam.org.br/doar.\nAssim que a doação for confirmada, enviaremos o recibo para seu e-mail. Muito obrigado!"
+  },
+  {
+    "user_input": "minha empresa quer fazer parceria com vcs, como faço",
+    "intent": "Parceria Corporativa",
+    "sentiment": "Neutro",
+    "ideal_response": "Ficamos muito felizes com o interesse da sua empresa! Parcerias corporativas são vitais para ampliarmos nosso impacto.\n\nPodemos discutir incentivos fiscais (Lei Rouanet, Lei do Esporte) e projetos customizados.\n\n📧 Por favor, contate nossa equipe de Relacionamento Institucional: parcerias@maosqueajudam.org.br ou (11) 3456-7890."
+  },
+  {
+    "user_input": "quero ser voluntario, oq preciso fazer?",
+    "intent": "Voluntariado",
+    "sentiment": "Positivo",
+    "ideal_response": "Que alegria receber seu interesse! Voluntários são o coração da nossa missão.\n\nTemos vagas presenciais (distribuição, eventos) e online (comunicação, gestão).\n\n👉 **Para começar:**\nPreencha nosso formulário em www.maosqueajudam.org.br/voluntariado ou envie um WhatsApp para (11) 98765-4322 informando como gostaria de atuar."
+  },
+  {
+    "user_input": "onde vcs ficam?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Nossa central principal fica localizada em:\n\n📍 Rua da Esperança, 123 - Centro, São Paulo/SP\nCEP: 01234-567\n\n⏰ Horário: Segunda a sexta, das 9h às 17h.\n\nVocê gostaria de saber como chegar, ou precisa de informações sobre outras unidades parceiras?"
+  },
+  {
+    "user_input": "preciso de ajuda pra pagar aluguel esse mes senao vou ser despejada com meus filhos",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Sinto muito que você esteja passando por essa angústia. A 'Mãos que Ajudam' foca em alimentação e não fornece auxílio financeiro direto para aluguel, mas queremos te orientar.\n\n1. Procure urgentemente o CRAS (Centro de Referência de Assistência Social) mais próximo para verificar benefícios eventuais.\n2. Chame nosso Social no WhatsApp (11) 98765-4321; podemos indicar ONGs parceiras focadas em moradia.\n\nNão desista, busque a rede de apoio pública."
+  },
+  {
+    "user_input": "aceita roupas usadas?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Sim, aceitamos com muito carinho! Roupas limpas e em bom estado são sempre bem-vindas.\n\n📦 **Onde entregar:**\nRua da Esperança, 123 - Centro.\nSegunda a sexta (9h às 17h) ou sábados (9h às 13h).\n\nPara grandes volumes, agende uma retirada pelo WhatsApp (11) 98765-4321. Obrigado por aquecer quem precisa!"
+  },
+  {
+    "user_input": "como funciona?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Nós somos uma central de impacto social.\n\n🔹 **O que fazemos:** Combatemos a fome e vulnerabilidade distribuindo cestas e conectando quem precisa a quem quer ajudar.\n🔹 **Como participar:** Recebemos doações (alimentos, recursos) e voluntários.\n\nVocê gostaria de pedir ajuda, fazer uma doação ou ser voluntário hoje?"
+  },
+  {
+    "user_input": "vcs tem nota fiscal pra doaçao? preciso pra imposto de renda",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Emitimos recibo oficial dedutível no Imposto de Renda.\n\n✅ **Online/PIX:** O recibo é enviado automaticamente para seu e-mail cadastrado.\n✅ **Presencial:** Emitimos o documento na hora da entrega.\n\nNosso CNPJ é 12.345.678/0001-90. Qualquer dúvida fiscal, fale conosco!"
+  },
+  {
+    "user_input": "trabalho com TI e queria ajudar mas só tenho tempo aos finais de semana",
+    "intent": "Voluntariado",
+    "sentiment": "Positivo",
+    "ideal_response": "Sua expertise em TI vale ouro para nós! Temos muitas demandas que podem ser feitas remotamente ou aos finais de semana (manutenção de site, análise de dados, suporte).\n\nPor favor, cadastre-se em www.maosqueajudam.org.br/voluntariado e marque a opção 'TI / Remoto'. Vamos adorar ter você no time!"
+  },
+  {
+    "user_input": "minha filha de 8 anos quer doar os brinquedos dela, vcs aceitam?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Que gesto lindo! 😍 Parabenize sua filha por nós. Aceitamos brinquedos em bom estado sim; eles levam muita alegria para as crianças que atendemos.\n\nVocês podem trazer juntos na Rua da Esperança, 123 - Centro (Seg-Sex 9h-17h, Sáb 9h-13h). Será um prazer recebê-las!"
+  },
+  {
+    "user_input": "to sem comer a dois dias, por favor me ajudem",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Isso é uma emergência e queremos ajudar.\n\n🚨 **Faça o seguinte AGORA:**\n1. Se puder, venha até nossa sede: Rua da Esperança, 123 - Centro (estamos abertos).\n2. Ou ligue no nosso emergencial: (11) 98765-4321.\n3. Ligue 156 (Prefeitura) para saber o Restaurante Bom Prato mais próximo.\n\nPor favor, entre em contato imediatamente."
+  },
+  {
+    "user_input": "queria saber se vcs dao cursos profissionalizantes",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Nosso foco principal é alimentação, mas temos parcerias com instituições de ensino.\n\nEntre em contato pelo WhatsApp (11) 98765-4321. Nossa equipe social pode verificar quais vagas estão abertas nos parceiros e te encaminhar. Também sugerimos procurar o CRAS da sua região."
+  },
+  {
+    "user_input": "vcs fazem eventos beneficentes? quero participar",
+    "intent": "Voluntariado",
+    "sentiment": "Positivo",
+    "ideal_response": "Sim! Adoramos realizar eventos como bazares, jantares e campanhas sazonais.\n\n📅 Acompanhe a agenda no nosso Instagram @maosqueajudam ou cadastre-se no site: www.maosqueajudam.org.br/eventos.\n\nQuer ser voluntário no próximo evento? Chame no WhatsApp: (11) 98765-4322."
+  },
+  {
+    "user_input": "pode me mandar o numero da conta pra deposito?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Claro! Muito obrigado pelo apoio.\n\n🏦 **Dados Bancários:**\nBanco do Brasil\nAgência: 1234-5 | Conta: 67890-1\nFavorecido: Mãos que Ajudam\nCNPJ: 12.345.678/0001-90\n\nSe preferir PIX: doacoes@maosqueajudam.org.br\nEnvie o comprovante para esse mesmo e-mail para receber seu recibo."
+  },
+  {
+    "user_input": "minha vó ta doente e nao tenho dinheiro pro remedio",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Sinto muito pela saúde da sua avó. Não fornecemos medicamentos diretamente, mas orientamos:\n\n1. Vá à **UBS** mais próxima com a receita (muitos remédios são gratuitos pelo SUS).\n2. Verifique se o remédio consta no programa **Farmácia Popular**.\n3. Ligue para nós no (11) 98765-4321 para indicarmos ONGs de saúde parceiras.\n\nEm emergências médicas, ligue 192 (SAMU)."
+  },
+  {
+    "user_input": "vcs tem transparencia financeira? quero ver pra onde vai minha doaçao",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Com certeza! A transparência é um dos nossos pilares. Todo o dinheiro é auditado.\n\n📊 Você pode ver nossos relatórios financeiros, balanços e impacto social em: www.maosqueajudam.org.br/transparencia\n\nQualquer dúvida específica, nosso setor financeiro está à disposição."
+  },
+  {
+    "user_input": "tenho uma padaria e sobra pao todo dia, vcs pegam?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Excelente iniciativa! O combate ao desperdício é fundamental para nós.\n\n🍞 Temos logística para coleta regular. Por favor, chame urgente no WhatsApp (11) 98765-4321 ou e-mail doacoes@maosqueajudam.org.br para combinarmos a rota e horários.\n\nObrigado por alimentar quem precisa!"
+  },
+  {
+    "user_input": "como faço pra receber a cesta basica de vcs?",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Neutro",
+    "ideal_response": "Para entrar no programa de cestas, é necessário um cadastro social simples:\n\n1. Envie uma mensagem para (11) 98765-4321 ou vá até a Rua da Esperança, 123.\n2. Tenha em mãos RG, CPF e comprovante de residência.\n3. Nossa assistente social fará uma breve entrevista.\n\nSe aprovado, você retira a cesta mensalmente."
+  },
+  {
+    "user_input": "vcs atendem em outras cidades ou só em SP?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Nossa sede e distribuição física são em São Paulo/SP (Rua da Esperança, 123).\n\nPorém, aceitamos doações online de todo o Brasil! Se você precisa de ajuda em outra cidade, entre em contato pelo (11) 98765-4321 que tentaremos indicar uma ONG parceira na sua região."
+  },
+  {
+    "user_input": "preciso de comida",
+    "intent": "Ambíguo",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá. Estou aqui para ajudar. Para eu te orientar melhor, preciso entender:\n\n🥣 **Você está precisando receber** doação de alimentos?\n🤝 **Ou você quer doar** comida para a ONG?\n\nPor favor, me responda para eu te dar o endereço ou contato correto."
+  },
+  {
+    "user_input": "como envio dinheiro pra ajudar?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Que ótimo! Você pode doar de várias formas:\n\n1. **PIX:** doacoes@maosqueajudam.org.br\n2. **Cartão/Boleto:** www.maosqueajudam.org.br/doar\n3. **Transferência:** BB | Ag 1234-5 | CC 67890-1\n\nTodos os métodos geram recibo. Obrigado!"
+  },
+  {
+    "user_input": "ajuda",
+    "intent": "Ambíguo",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Sou o assistente virtual. Qual tipo de ajuda você procura hoje?\n\n1️⃣ **Receber apoio** (alimentos, social)\n2️⃣ **Fazer uma doação**\n3️⃣ **Ser voluntário**\n\nDigite o número ou escreva o que precisa."
+  },
+  {
+    "user_input": "posso abater a doação no IR?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Doações para nós podem ser deduzidas (até 6% do IR devido na declaração completa).\n\nEmitimos o recibo fiscal automaticamente. Basta fazer a doação (PIX, Transferência ou Site) e usar os dados do recibo na sua declaração.\nCNPJ: 12.345.678/0001-90."
+  },
+  {
+    "user_input": "transferencia bancaria",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Perfeito. Seguem os dados para TED/DOC:\n\n**Banco do Brasil**\nAgência: 1234-5\nConta Corrente: 67890-1\nCNPJ: 12.345.678/0001-90\nFavorecido: Mãos que Ajudam\n\nSe precisar do recibo, envie o comprovante para doacoes@maosqueajudam.org.br."
+  },
+  {
+    "user_input": "como faço uma doação?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Você pode doar como preferir:\n\n📱 **PIX:** doacoes@maosqueajudam.org.br\n💳 **Cartão:** www.maosqueajudam.org.br/doar\n📦 **Alimentos/Roupas:** Rua da Esperança, 123 - Centro (Seg-Sex 9h-17h).\n\nQualquer ajuda faz muita diferença!"
+  },
+  {
+    "user_input": "oi",
+    "intent": "Ambíguo",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Bem-vindo(a) à central Mãos que Ajudam. 🤝\n\nAtuamos conectando doações a quem mais precisa. Como posso ser útil hoje? Você quer doar, precisa de auxílio ou busca informações?"
+  },
+  {
+    "user_input": "vcs dao cupom fiscal?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Nós emitimos o **Recibo de Doação** (válido para fins fiscais e Imposto de Renda), não cupom fiscal de venda.\n\nPara receber o seu, basta fazer a doação e nos enviar o comprovante. Se doar pelo site, o envio é automático."
+  },
+  {
+    "user_input": "vcs atendem final de semana?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Nosso atendimento social é de segunda a sexta, das 9h às 17h.\n\n⚠️ **Aos sábados (9h às 13h):** Apenas para recebimento de doações na sede.\n\nPara emergências, nosso WhatsApp (11) 98765-4321 funciona em plantão."
+  },
+  {
+    "user_input": "da pra parcelar a doaçao?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Sim! No nosso site você pode doar via cartão de crédito e parcelar em até 12x.\n\n🌐 Acesse: www.maosqueajudam.org.br/doar\n\nIsso ajuda muito a manter nosso fluxo mensal. Obrigado!"
+  },
+  {
+    "user_input": "posso levar alimentos la?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Com certeza! Alimentos não perecíveis são nossa maior necessidade.\n\n📍 **Endereço:** Rua da Esperança, 123 - Centro.\n🕒 **Horário:** Seg-Sex (9h-17h) e Sáb (9h-13h).\n\nSe for muita quantidade, avise antes no WhatsApp para prepararmos a equipe!"
+  },
+  {
+    "user_input": "minha situação ta dificil",
+    "intent": "Ambíguo",
+    "sentiment": "Negativo",
+    "ideal_response": "Sinto muito ouvir isso. Estamos aqui para tentar amenizar esse momento.\n\nPara te orientar corretamente, o que é mais urgente agora?\n1. **Alimentação** (Cesta Básica)?\n2. **Orientação Social** (Documentos/Benefícios)?\n\nPor favor, me dê mais detalhes ou chame no WhatsApp (11) 98765-4321."
+  },
+  {
+    "user_input": "trabalho numa empresa grande, como fazemos pra ser parceiros?",
+    "intent": "Parceria Corporativa",
+    "sentiment": "Positivo",
+    "ideal_response": "Excelente! Empresas parceiras impulsionam nosso trabalho. Temos opções de Voluntariado Corporativo, Doação Recorrente e Matchfunding.\n\n📧 Mande um 'oi' para parcerias@maosqueajudam.org.br ou ligue (11) 3456-7890 para agendarmos uma apresentação."
+  },
+  {
+    "user_input": "cadastro voluntario",
+    "intent": "Voluntariado",
+    "sentiment": "Neutro",
+    "ideal_response": "Ótimo ter você conosco! Para se cadastrar:\n\n📝 Acesse: www.maosqueajudam.org.br/voluntariado\n📲 Ou WhatsApp: (11) 98765-4322\n\nTemos vagas em diversas áreas (cozinha, eventos, administrativo, TI). Venha fazer a diferença!"
+  },
+  {
+    "user_input": "alguem ai?",
+    "intent": "Ambíguo",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim, estou aqui! 🤖 Sou o assistente virtual da Mãos que Ajudam.\n\nSe precisar falar com um humano, nosso horário é seg-sex, 9h-17h, pelo WhatsApp (11) 98765-4321.\n\nComo posso te ajudar agora? Doação, Ajuda ou Informações?"
+  },
+  {
+    "user_input": "preciso saber se vcs tem vaga de emprego",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Olá! Somos uma organização majoritariamente voluntária. Quando temos vagas remuneradas (CLT), divulgamos no LinkedIn e Instagram @maosqueajudam.\n\nVocê pode enviar seu currículo para rh@maosqueajudam.org.br para nosso banco de talentos."
+  },
+  {
+    "user_input": "aceitam moveis?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Depende do estado e do espaço disponível. Aceitamos móveis em bom estado.\n\n📸 Por favor, envie fotos dos móveis para o WhatsApp (11) 98765-4321.\n\nSe aprovado, verificamos a possibilidade de retirada ou agendamos sua entrega."
+  },
+  {
+    "user_input": "preciso de fraldas pro meu bebe",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Entendo. As fraldas são itens que dependem muito do nosso estoque de doações do mês.\n\nPor favor, envie uma mensagem agora para (11) 98765-4321 informando o tamanho que precisa. Vamos verificar se temos disponível ou indicar onde conseguir."
+  },
+  {
+    "user_input": "quero contribuir mensalmente, como faço?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Que decisão incrível! Doadores mensais garantem a estabilidade dos nossos projetos.\n\n🔗 Cadastre-se em: www.maosqueajudam.org.br/doar-mensalmente\n\nVocê pode escolher Boleto, Cartão ou Débito em Conta. O valor é livre e pode cancelar quando quiser."
+  },
+  {
+    "user_input": "onde posso ver o trabalho de vcs?",
+    "intent": "Informação Geral",
+    "sentiment": "Positivo",
+    "ideal_response": "Adoramos mostrar nosso impacto!\n\n📱 **Instagram:** @maosqueajudam (dia a dia)\n💻 **Site:** www.maosqueajudam.org.br (relatórios)\n👀 **Visita:** Agende pelo WhatsApp (11) 98765-4321 para conhecer nossa sede pessoalmente."
+  },
+  {
+    "user_input": "quantas familias vcs atendem?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Atualmente, apoiamos cerca de **500 famílias** por mês com cestas básicas, impactando mais de 2.000 pessoas.\n\nQuer nos ajudar a aumentar esse número? Qualquer doação conta!"
+  },
+  {
+    "user_input": "vcs pegam doação de comida vencida?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Agradecemos a intenção, mas **não podemos aceitar alimentos vencidos** por questões de segurança alimentar.\n\nAceitamos itens dentro da validade (preferencialmente com mais de 30 dias para vencer). Se tiver dúvida sobre algum item, mande foto no nosso WhatsApp."
+  },
+  {
+    "user_input": "sou estudante e quero fazer TCC sobre vcs",
+    "intent": "Parceria Corporativa",
+    "sentiment": "Positivo",
+    "ideal_response": "Que honra ser tema do seu trabalho! Apoiamos a pesquisa acadêmica sempre que possível.\n\n🎓 Envie um e-mail para contato@maosqueajudam.org.br explicando o tema e o que precisa (entrevista, dados). Vamos verificar a disponibilidade da agenda da coordenação."
+  },
+  {
+    "user_input": "como sei se minha doação chegou?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Transparência total:\n1. Se foi PIX/Cartão, você recebe e-mail automático.\n2. Se foi Transferência, envie o comprovante para doacoes@maosqueajudam.org.br.\n\nVocê também pode conferir seu histórico na área do doador em nosso site."
+  },
+  {
+    "user_input": "tem como vcs buscarem as doações na minha casa?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Sim, temos um caminhão para coleta de grandes volumes (móveis, muitas caixas de alimentos) na Grande SP.\n\n🚚 **Para agendar:** Chame no WhatsApp (11) 98765-4321 com fotos dos itens e seu endereço.\n\nPara itens pequenos, pedimos a gentileza de entregar na nossa sede."
+  },
+  {
+    "user_input": "vcs ajudam moradores de rua?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Temos a 'Ronda Solidária' que distribui marmitas e cobertores para pessoas em situação de rua.\n\nSe você viu alguém precisando de ajuda em um ponto específico, envie a localização para nosso WhatsApp (11) 98765-4321 que avisaremos a equipe de campo."
+  },
+  {
+    "user_input": "quanto custa uma cesta basica?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Nossa cesta básica completa custa em média **R$ 150,00** e alimenta uma família de 4 pessoas por um mês.\n\nMas lembre-se: você pode doar qualquer valor! R$ 10,00 já garantem 1kg de feijão na mesa de alguém."
+  },
+  {
+    "user_input": "vcs tem whatsapp?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Anote aí:\n\n📱 **Geral e Doações:** (11) 98765-4321\n🤝 **Voluntariado:** (11) 98765-4322\n\nAtendemos de segunda a sexta, das 9h às 17h."
+  },
+  {
+    "user_input": "trabalho em restaurante, sobra muita comida, vcs querem?",
+    "intent": "Quero Doar",
+    "sentiment": "Positivo",
+    "ideal_response": "Sim! Resgatar alimentos é uma missão importante para nós.\n\n🚨 **Urgente:** Entre em contato agora pelo (11) 98765-4321.\nPrecisamos alinhar a logística rápida para garantir que a comida chegue fresca a quem precisa hoje mesmo."
+  },
+  {
+    "user_input": "vcs aceitam voluntario menor de idade?",
+    "intent": "Voluntariado",
+    "sentiment": "Neutro",
+    "ideal_response": "Aceitamos voluntários a partir de **14 anos**.\n\n⚠️ De 14 a 17 anos, é preciso autorização por escrito dos pais ou vir acompanhado de um responsável nas ações.\nFale com a gente: (11) 98765-4322."
+  },
+  {
+    "user_input": "nao tenho dinheiro mas quero ajudar",
+    "intent": "Voluntariado",
+    "sentiment": "Positivo",
+    "ideal_response": "Sua ajuda vale muito, mesmo sem dinheiro! Você pode:\n\n1. Ser voluntário (presencial ou online).\n2. Divulgar nossas campanhas nas redes sociais.\n3. Organizar uma arrecadação de alimentos no seu prédio.\n\nVeja mais ideias em: www.maosqueajudam.org.br/voluntariado."
+  },
+  {
+    "user_input": "vcs tem instagram?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Siga a gente lá: **@maosqueajudam**\n\nPostamos fotos das entregas, prestação de contas e avisos de eventos. Ajude compartilhando nossos posts!"
+  },
+  {
+    "user_input": "preciso de ajuda psicologica",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Desesperado/Urgente",
+    "ideal_response": "Cuidar da mente é fundamental. Não oferecemos terapia direta, mas indicamos:\n\n1. **Ligue 188 (CVV):** Apoio emocional gratuito 24h.\n2. **CAPS:** Procure o Centro de Atenção Psicossocial da sua região (SUS).\n\nVocê não está sozinho(a)."
+  },
+  {
+    "user_input": "vcs sao ONG ou OSCIP?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Somos uma Associação sem fins lucrativos (ONG) devidamente registrada, com certificação CEBAS.\n\n📜 **CNPJ:** 12.345.678/0001-90\nNossos estatutos estão disponíveis no site."
+  },
+  {
+    "user_input": "posso fazer doação anonima?",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim, respeitamos totalmente sua privacidade.\n\nVocê pode fazer um depósito em dinheiro no banco ou transferência sem se identificar para a nossa equipe de comunicação. Apenas o setor financeiro verá o crédito na conta."
+  },
+  {
+    "user_input": "vcs dao cesta de natal?",
+    "intent": "Busco Ajuda/Beneficiário",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim! Em dezembro realizamos a campanha 'Natal Sem Fome'.\n\n🎄 As cestas são destinadas prioritariamente às famílias que já estão em acompanhamento conosco. Para saber sobre vagas extras, fique atento ao nosso WhatsApp (11) 98765-4321 em Novembro."
+  },
+  {
+    "user_input": "vcs tem cnpj?",
+    "intent": "Informação Geral",
+    "sentiment": "Neutro",
+    "ideal_response": "Sim, somos legalizados.\n\n📄 **CNPJ:** 12.345.678/0001-90\nRazão Social: Associação Mãos que Ajudam\n\nEsse número é a chave para doações via PIX ou transferências."
+  },
+  {
+    "user_input": "quero cancelar minha doação recorrente",
+    "intent": "Quero Doar",
+    "sentiment": "Neutro",
+    "ideal_response": "Sem problemas. Agradecemos muito pelo período que você esteve conosco!\n\nPara cancelar, envie um e-mail simples para doacoes@maosqueajudam.org.br com seu nome e CPF. O cancelamento é feito em até 48h úteis."
+  }
+]
