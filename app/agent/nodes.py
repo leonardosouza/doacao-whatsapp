@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from langchain_openai import ChatOpenAI
 
@@ -11,10 +12,18 @@ from app.rag.retriever import retrieve_similar
 logger = logging.getLogger(__name__)
 
 llm = ChatOpenAI(
-    model="gpt-4o",
+    model=settings.OPENAI_MODEL,
     temperature=0.3,
     openai_api_key=settings.OPENAI_API_KEY,
 )
+
+
+def _extract_json(text: str) -> str:
+    """Remove markdown code block wrappers if present."""
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    if match:
+        return match.group(1)
+    return text.strip()
 
 
 def classify_node(state: ConversationState) -> dict:
@@ -22,7 +31,8 @@ def classify_node(state: ConversationState) -> dict:
     response = llm.invoke(prompt)
 
     try:
-        classification = json.loads(response.content)
+        raw = _extract_json(response.content)
+        classification = json.loads(raw)
         intent = classification.get("intent", "Ambíguo")
         sentiment = classification.get("sentiment", "Neutro")
     except (json.JSONDecodeError, AttributeError):

@@ -21,7 +21,7 @@ def get_vectorstore() -> FAISS:
 def _build_vectorstore() -> FAISS:
     documents = load_interactions()
     embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small",
+        model=settings.OPENAI_EMBEDDING_MODEL,
         openai_api_key=settings.OPENAI_API_KEY,
     )
     vectorstore = FAISS.from_documents(documents, embeddings)
