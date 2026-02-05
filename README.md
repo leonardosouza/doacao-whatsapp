@@ -146,7 +146,7 @@ DATABASE_URL=postgresql://doacao_user:doacao_pass@db:5432/doacao_db
 docker compose up --build
 ```
 
-A aplicação estará disponível em `http://localhost:8000`.
+A aplicação estará disponível em `http://localhost:80`.
 
 ### 4. Execute as migrations
 
@@ -162,7 +162,7 @@ No painel do Z-API, configure a URL de webhook para:
 https://seu-dominio.com/api/webhook
 ```
 
-> Para desenvolvimento local, utilize [ngrok](https://ngrok.com/) ou similar para expor a porta 8000.
+> Para desenvolvimento local, utilize [ngrok](https://ngrok.com/) ou similar para expor a porta 80.
 
 ## Endpoints da API
 
@@ -193,7 +193,7 @@ docker compose up db -d
 pip install -r requirements.txt
 
 # Rodar a aplicação
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 80
 ```
 
 ## Licença
