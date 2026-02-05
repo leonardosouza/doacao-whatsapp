@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api.routes import health
+from app.api.routes import health, webhook
 from app.config import settings
 
 app = FastAPI(
@@ -10,3 +10,4 @@ app = FastAPI(
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])
+app.include_router(webhook.router, prefix="/api", tags=["webhook"])
