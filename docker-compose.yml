@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    container_name: doacao-whatsapp-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: doacao-whatsapp-db
+    environment:
+      POSTGRES_USER: doacao_user
+      POSTGRES_PASSWORD: doacao_pass
+      POSTGRES_DB: doacao_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U doacao_user -d doacao_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
