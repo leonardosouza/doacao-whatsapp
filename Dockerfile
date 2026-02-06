@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.13.12-slim-bookworm
 
 WORKDIR /app
 
@@ -10,6 +10,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+ENV PYTHONPATH=/app
 
 EXPOSE 80
 
