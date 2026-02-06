@@ -5,7 +5,7 @@ services:
     ports:
       - "80:80"
     env_file:
-      - .env
+      - .env.${APP_ENV:-development}
     volumes:
       - .:/app
     depends_on:
