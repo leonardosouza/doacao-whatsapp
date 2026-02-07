@@ -1,15 +1,15 @@
-# DoaçãoBot - Assistente de Doações via WhatsApp
+# DoaZap - Assistente de Doações via WhatsApp
 
-Plataforma de impacto social que conecta doadores à ONG **Mãos que Ajudam** através de uma experiência conversacional no WhatsApp, utilizando IA com LangGraph e RAG.
+Plataforma de impacto social que conecta doadores a diversas **ONGs parceiras** através de uma experiência conversacional no WhatsApp, utilizando IA com LangGraph e RAG.
 
 ## Sobre o Projeto
 
-O DoaçãoBot permite que usuários interajam via WhatsApp para:
+O DoaZap permite que usuários interajam via WhatsApp para:
 
 - **Fazer doações** — receber dados bancários, PIX e orientações
 - **Buscar ajuda** — ser encaminhado para assistência social
 - **Ser voluntário** — conhecer oportunidades de voluntariado
-- **Obter informações** — saber mais sobre a ONG e seus projetos
+- **Obter informações** — saber mais sobre as ONGs parceiras e seus projetos
 - **Parcerias corporativas** — conectar empresas à causa
 
 ## Arquitetura
@@ -42,7 +42,8 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 5. Agente LangGraph processa a mensagem:
    - **Classify** — GPT-4.1-mini identifica intent e sentimento
    - **Retrieve** — FAISS busca interações similares na base RAG
-   - **Generate** — GPT-4.1-mini gera resposta contextualizada
+   - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
+   - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
 6. Resposta é salva no banco e enviada via Z-API
 
 ### Intents suportados
@@ -53,7 +54,7 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 | Busco Ajuda/Beneficiário | Usuário precisa de assistência |
 | Voluntariado | Interesse em ser voluntário |
 | Parceria Corporativa | Empresa buscando parceria |
-| Informação Geral | Perguntas sobre a ONG |
+| Informação Geral | Perguntas sobre as ONGs parceiras |
 | Ambíguo | Mensagem sem intenção clara |
 
 ## Stack Tecnológica
@@ -81,28 +82,35 @@ doacao-whatsapp/
 │   ├── database.py              # SQLAlchemy engine e session
 │   ├── api/routes/
 │   │   ├── health.py            # GET /api/health
-│   │   └── webhook.py           # POST /api/webhook (Z-API)
+│   │   ├── webhook.py           # POST /api/webhook (Z-API)
+│   │   └── ong.py               # CRUD /api/ongs (ONGs parceiras)
 │   ├── models/
 │   │   ├── conversation.py      # Model Conversation
-│   │   └── message.py           # Model Message
+│   │   ├── message.py           # Model Message
+│   │   └── ong.py               # Model Ong (ONGs parceiras)
 │   ├── schemas/
-│   │   └── webhook.py           # Schemas do payload Z-API
+│   │   ├── webhook.py           # Schemas do payload Z-API
+│   │   └── ong.py               # Schemas de ONG (create/update/response)
 │   ├── services/
 │   │   ├── zapi_service.py      # Envio de mensagens via Z-API
-│   │   └── conversation_service.py  # Gerenciamento de conversas
+│   │   ├── conversation_service.py  # Gerenciamento de conversas
+│   │   └── ong_service.py       # CRUD de ONGs parceiras
 │   ├── agent/
-│   │   ├── graph.py             # Grafo LangGraph (classify → retrieve → generate)
-│   │   ├── nodes.py             # Nós: classify, retrieve, generate
+│   │   ├── graph.py             # Grafo LangGraph (classify → retrieve → enrich → generate)
+│   │   ├── nodes.py             # Nós: classify, retrieve, enrich, generate
 │   │   ├── state.py             # ConversationState (TypedDict)
 │   │   └── prompts.py           # Prompts de classificação e geração
 │   └── rag/
 │       ├── loader.py            # Carrega BASE_INTERACTION.json
 │       └── retriever.py         # FAISS vectorstore + similarity search
+├── scripts/
+│   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
 │   └── versions/                # Migrations
 ├── data/
-│   └── BASE_INTERACTION.json    # Base de conhecimento RAG
+│   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (50 interações)
+│   └── ONGS.json                # Dados das 19 ONGs parceiras
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -135,7 +143,7 @@ Edite o `.env.development` com suas credenciais:
 
 ```env
 # App
-APP_NAME=DoaçãoBot
+APP_NAME=DoaZap
 APP_ENV=development
 DEBUG=True
 
@@ -191,6 +199,11 @@ https://seu-dominio.com/api/webhook
 |--------|------|-----------|
 | `GET` | `/api/health` | Health check (verifica banco de dados e Z-API) |
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
+| `GET` | `/api/ongs` | Lista todas as ONGs parceiras |
+| `GET` | `/api/ongs/{id}` | Retorna uma ONG pelo ID |
+| `POST` | `/api/ongs` | Cadastra nova ONG parceira |
+| `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG |
+| `DELETE` | `/api/ongs/{id}` | Remove uma ONG |
 | `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
 | `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
 
