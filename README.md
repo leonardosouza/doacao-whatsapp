@@ -65,9 +65,10 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 | Motor de Conversação | LangGraph |
 | LLM | OpenAI GPT-4.1-mini |
 | Embeddings/RAG | OpenAI Embeddings (text-embedding-3-small) + FAISS |
-| Banco de Dados | PostgreSQL 14 |
+| Banco de Dados | PostgreSQL (local: Docker / produção: Supabase) |
 | ORM | SQLAlchemy + Alembic |
 | Containerização | Docker + Docker Compose |
+| Hosting | Render |
 | WhatsApp | Z-API |
 
 ## Estrutura do Projeto
@@ -188,7 +189,7 @@ https://seu-dominio.com/api/webhook
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/api/health` | Health check |
+| `GET` | `/api/health` | Health check (verifica banco de dados e Z-API) |
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
 | `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
 | `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
@@ -211,6 +212,33 @@ https://seu-dominio.com/api/webhook
 | `POSTGRES_USER` | Usuário PostgreSQL (docker-compose) | Não | `doacao_user` |
 | `POSTGRES_PASSWORD` | Senha PostgreSQL (docker-compose) | Não | `doacao_pass` |
 | `POSTGRES_DB` | Nome do banco (docker-compose) | Não | `doacao_db` |
+
+## Deploy em Produção
+
+A aplicação está hospedada no [Render](https://render.com/) com banco de dados [Supabase](https://supabase.com/).
+
+### Infraestrutura
+
+| Serviço | Plataforma |
+|---------|------------|
+| Aplicação (FastAPI) | Render (Web Service) |
+| Banco de Dados (PostgreSQL) | Supabase (Connection Pooler) |
+
+### Configuração
+
+1. Crie um Web Service no Render apontando para este repositório
+2. Configure as variáveis de ambiente no painel do Render (mesmas do `.env.production`)
+3. Para o `DATABASE_URL`, utilize a connection string do Supabase (pooler)
+4. Configure o webhook no Z-API apontando para `https://seu-app.onrender.com/api/webhook`
+
+### Health Check
+
+Verifique o status da aplicação e conexão com o banco:
+
+```bash
+curl https://seu-app.onrender.com/api/health
+# {"status": "ok", "database": "connected", "zapi": "connected"}
+```
 
 ## Desenvolvimento Local
 

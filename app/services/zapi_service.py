@@ -12,6 +12,20 @@ ZAPI_BASE_URL = (
 )
 
 
+async def get_status() -> dict:
+    url = f"{ZAPI_BASE_URL}/status"
+    headers = {"Client-Token": settings.ZAPI_CLIENT_TOKEN}
+
+    async with httpx.AsyncClient(timeout=5) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Erro ao consultar status Z-API: {e}")
+            return {"connected": False, "error": str(e)}
+
+
 async def send_text_message(phone: str, message: str) -> dict | None:
     url = f"{ZAPI_BASE_URL}/send-text"
     headers = {"Client-Token": settings.ZAPI_CLIENT_TOKEN}
