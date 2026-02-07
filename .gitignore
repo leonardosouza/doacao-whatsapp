@@ -42,5 +42,10 @@ Thumbs.db
 /PROPOSAL.md
 /BASE_INTERACTION.json
 
+# Test / Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
 # Alembic
 alembic/versions/__pycache__/

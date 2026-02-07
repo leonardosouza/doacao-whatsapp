@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = ["-v", "--strict-markers", "--tb=short"]
+markers = [
+    "unit: Testes unitarios (sem DB, sem chamadas externas)",
+    "integration: Testes de integracao (com DB in-memory)",
+    "api: Testes de endpoints da API",
+]
