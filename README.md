@@ -69,6 +69,7 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 | Banco de Dados | PostgreSQL (local: Docker / produção: Supabase) |
 | ORM | SQLAlchemy + Alembic |
 | Containerização | Docker + Docker Compose |
+| Testes | pytest + pytest-asyncio + pytest-cov |
 | Hosting | Render |
 | WhatsApp | Z-API |
 
@@ -112,9 +113,11 @@ doacao-whatsapp/
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (50 interações)
 │   └── ONGS.json                # Dados das 19 ONGs parceiras
+├── tests/                         # 85 testes automatizados (98% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
+├── pyproject.toml               # Configuração pytest
 ├── requirements.txt
 └── .env.example
 ```
@@ -206,10 +209,10 @@ https://seu-dominio.com/api/webhook
 | `POST` | `/api/ongs` | Cadastra nova ONG parceira 🔒 |
 | `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG 🔒 |
 | `DELETE` | `/api/ongs/{id}` | Remove uma ONG 🔒 |
-
-> 🔒 Rotas protegidas por API Key. Envie o header `X-API-Key` com a chave configurada em `API_KEY`.
 | `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
 | `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
+
+> 🔒 Rotas protegidas por API Key. Envie o header `X-API-Key` com a chave configurada em `API_KEY`.
 
 ## Variáveis de Ambiente
 
@@ -270,6 +273,65 @@ pip install -r requirements.txt
 # Rodar a aplicação
 uvicorn app.main:app --reload --port 80
 ```
+
+## Testes
+
+O projeto possui **85 testes automatizados** com **98% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+
+### Executar os testes
+
+```bash
+# Instalar dependências (inclui pytest, pytest-asyncio, pytest-cov)
+pip install -r requirements.txt
+
+# Rodar todos os testes
+pytest
+
+# Com relatório de cobertura
+pytest --cov=app --cov-report=term-missing
+
+# Gerar relatório HTML de cobertura
+pytest --cov=app --cov-report=html
+# Abrir htmlcov/index.html
+```
+
+### Estrutura dos testes
+
+```
+tests/
+├── conftest.py                        # Fixtures globais (DB, client, dados)
+├── test_schemas/
+│   ├── test_webhook_schemas.py        # Validação dos payloads Z-API
+│   └── test_ong_schemas.py            # Validação dos schemas de ONG
+├── test_security/
+│   └── test_require_api_key.py        # Autenticação por API Key
+├── test_services/
+│   ├── test_conversation_service.py   # Gerenciamento de conversas
+│   ├── test_ong_service.py            # CRUD de ONGs
+│   └── test_zapi_service.py           # Integração Z-API (mock)
+├── test_api/
+│   ├── test_health.py                 # Health check endpoint
+│   ├── test_ong_routes.py             # Rotas CRUD de ONGs
+│   └── test_webhook.py                # Webhook do WhatsApp
+├── test_agent/
+│   ├── test_nodes.py                  # Nós do LangGraph (classify, retrieve, enrich, generate)
+│   └── test_graph.py                  # Grafo compilado e fluxo end-to-end
+└── test_rag/
+    ├── test_loader.py                 # Carregamento da base de conhecimento
+    └── test_retriever.py              # Vectorstore FAISS e busca por similaridade
+```
+
+### Cobertura por módulo
+
+| Módulo | Cobertura |
+|--------|:---------:|
+| agent (graph, nodes, prompts, state) | 100% |
+| api/routes (health, webhook, ong) | 97% |
+| schemas (webhook, ong) | 100% |
+| security | 100% |
+| services (conversation, ong, zapi) | 98% |
+| rag (loader, retriever) | 100% |
+| config, main | 100% |
 
 ## Licença
 
