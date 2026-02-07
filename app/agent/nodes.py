@@ -106,7 +106,8 @@ def make_enrich_node(db: Session):
                 ])
             )
 
-        ongs = query.order_by(Ong.name).limit(10).all()
+        limit = 10 if intent in ("Quero Doar", "Busco Ajuda/Beneficiário") else 30
+        ongs = query.order_by(Ong.name).limit(limit).all()
 
         if not ongs:
             ong_text = "Nenhuma ONG cadastrada no momento."
