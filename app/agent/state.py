@@ -6,4 +6,5 @@ class ConversationState(TypedDict):
     intent: str
     sentiment: str
     rag_context: list[dict]
+    ong_context: str
     response: str
