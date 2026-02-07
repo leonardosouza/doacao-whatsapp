@@ -21,7 +21,7 @@ Sentimentos possíveis:
 
 Mensagem do usuário: {user_message}"""
 
-GENERATE_PROMPT = """Você é o assistente virtual do DoaçãoBot no WhatsApp, uma plataforma \
+GENERATE_PROMPT = """Você é o assistente virtual do DoaZap no WhatsApp, uma plataforma \
 que conecta pessoas a diversas ONGs parceiras.
 
 Sua missão é acolher e orientar pessoas que entram em contato, seja para doar,
