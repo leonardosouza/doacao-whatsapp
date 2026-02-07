@@ -40,9 +40,9 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 3. FastAPI recebe o payload, extrai telefone e mensagem
 4. Busca/cria sessão de conversa no PostgreSQL
 5. Agente LangGraph processa a mensagem:
-   - **Classify** — GPT-4o identifica intent e sentimento
+   - **Classify** — GPT-4.1-mini identifica intent e sentimento
    - **Retrieve** — FAISS busca interações similares na base RAG
-   - **Generate** — GPT-4o gera resposta contextualizada
+   - **Generate** — GPT-4.1-mini gera resposta contextualizada
 6. Resposta é salva no banco e enviada via Z-API
 
 ### Intents suportados
@@ -63,7 +63,7 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 | Linguagem | Python 3.13+ |
 | Framework Web | FastAPI |
 | Motor de Conversação | LangGraph |
-| LLM | OpenAI GPT-4o |
+| LLM | OpenAI GPT-4.1-mini |
 | Embeddings/RAG | OpenAI Embeddings (text-embedding-3-small) + FAISS |
 | Banco de Dados | PostgreSQL 14 |
 | ORM | SQLAlchemy + Alembic |
@@ -140,7 +140,7 @@ DEBUG=True
 
 # OpenAI
 OPENAI_API_KEY=sk-sua-chave-openai
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 OPENAI_TEMPERATURE=0.3
 

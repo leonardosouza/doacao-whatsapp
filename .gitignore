@@ -14,10 +14,10 @@ venv/
 .venv/
 env/
 
-# Environment variables
+# Environment variables (protege qualquer .env exceto o exemplo)
 .env
-.env.development
-.env.production
+.env.*
+!.env.example
 
 # IDE
 .vscode/
