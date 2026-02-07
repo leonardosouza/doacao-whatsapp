@@ -60,12 +60,12 @@ O DoaçãoBot permite que usuários interajam via WhatsApp para:
 
 | Camada | Tecnologia |
 |--------|-----------|
-| Linguagem | Python 3.11+ |
+| Linguagem | Python 3.13+ |
 | Framework Web | FastAPI |
 | Motor de Conversação | LangGraph |
 | LLM | OpenAI GPT-4o |
 | Embeddings/RAG | OpenAI Embeddings (text-embedding-3-small) + FAISS |
-| Banco de Dados | PostgreSQL 16 |
+| Banco de Dados | PostgreSQL 14 |
 | ORM | SQLAlchemy + Alembic |
 | Containerização | Docker + Docker Compose |
 | WhatsApp | Z-API |
@@ -103,7 +103,7 @@ doacao-whatsapp/
 ├── data/
 │   └── BASE_INTERACTION.json    # Base de conhecimento RAG
 ├── docker-compose.yml           # App + PostgreSQL
-├── Dockerfile                   # Python 3.11-slim
+├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
 ├── requirements.txt
 └── .env.example
@@ -127,18 +127,38 @@ cd doacao-whatsapp
 ### 2. Configure as variáveis de ambiente
 
 ```bash
-cp .env.example .env
+cp .env.example .env.development
 ```
 
-Edite o `.env` com suas credenciais:
+Edite o `.env.development` com suas credenciais:
 
 ```env
+# App
+APP_NAME=DoaçãoBot
+APP_ENV=development
+DEBUG=True
+
+# OpenAI
 OPENAI_API_KEY=sk-sua-chave-openai
+OPENAI_MODEL=gpt-4o
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_TEMPERATURE=0.3
+
+# Z-API
 ZAPI_INSTANCE_ID=seu-instance-id
 ZAPI_TOKEN=seu-token
 ZAPI_CLIENT_TOKEN=seu-client-token
+
+# Database
 DATABASE_URL=postgresql://doacao_user:doacao_pass@db:5432/doacao_db
+
+# PostgreSQL (usado pelo docker-compose)
+POSTGRES_USER=doacao_user
+POSTGRES_PASSWORD=doacao_pass
+POSTGRES_DB=doacao_db
 ```
+
+> A aplicação carrega automaticamente o arquivo `.env.{APP_ENV}` conforme o valor de `APP_ENV` (default: `development`).
 
 ### 3. Inicie os containers
 
@@ -170,18 +190,27 @@ https://seu-dominio.com/api/webhook
 |--------|------|-----------|
 | `GET` | `/api/health` | Health check |
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
-| `GET` | `/docs` | Documentação Swagger (auto-gerada) |
+| `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
+| `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
 
 ## Variáveis de Ambiente
 
-| Variável | Descrição | Obrigatória |
-|----------|-----------|:-----------:|
-| `OPENAI_API_KEY` | Chave da API OpenAI | Sim |
-| `ZAPI_INSTANCE_ID` | ID da instância Z-API | Sim |
-| `ZAPI_TOKEN` | Token de autenticação Z-API | Sim |
-| `ZAPI_CLIENT_TOKEN` | Client token do Z-API | Sim |
-| `DATABASE_URL` | URL de conexão PostgreSQL | Sim |
-| `DEBUG` | Modo debug (default: false) | Não |
+| Variável | Descrição | Obrigatória | Default |
+|----------|-----------|:-----------:|---------|
+| `APP_NAME` | Nome da aplicação | Sim | — |
+| `APP_ENV` | Ambiente (`development`, `production`) | Não | `development` |
+| `DEBUG` | Habilita Swagger e modo debug | Não | `False` |
+| `OPENAI_API_KEY` | Chave da API OpenAI | Sim | — |
+| `OPENAI_MODEL` | Modelo LLM utilizado | Sim | — |
+| `OPENAI_EMBEDDING_MODEL` | Modelo de embeddings | Sim | — |
+| `OPENAI_TEMPERATURE` | Temperatura de geração | Não | `0.3` |
+| `ZAPI_INSTANCE_ID` | ID da instância Z-API | Sim | — |
+| `ZAPI_TOKEN` | Token de autenticação Z-API | Sim | — |
+| `ZAPI_CLIENT_TOKEN` | Client token do Z-API | Sim | — |
+| `DATABASE_URL` | URL de conexão PostgreSQL | Sim | — |
+| `POSTGRES_USER` | Usuário PostgreSQL (docker-compose) | Não | `doacao_user` |
+| `POSTGRES_PASSWORD` | Senha PostgreSQL (docker-compose) | Não | `doacao_pass` |
+| `POSTGRES_DB` | Nome do banco (docker-compose) | Não | `doacao_db` |
 
 ## Desenvolvimento Local
 

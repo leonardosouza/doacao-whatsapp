@@ -1,6 +1,7 @@
 import logging
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from app.agent.nodes import classify_node, generate_node, retrieve_node
 from app.agent.state import ConversationState
@@ -8,7 +9,7 @@ from app.agent.state import ConversationState
 logger = logging.getLogger(__name__)
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph:
     graph = StateGraph(ConversationState)
 
     graph.add_node("classify", classify_node)
@@ -36,7 +37,7 @@ async def process_message(user_message: str) -> dict:
         "response": "",
     }
 
-    result = conversation_graph.invoke(initial_state)
+    result = await conversation_graph.ainvoke(initial_state)
 
     logger.info(
         f"Mensagem processada: intent={result['intent']}, "
