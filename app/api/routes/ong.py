@@ -5,13 +5,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.ong import OngCreate, OngResponse, OngUpdate
+from app.security import require_api_key
 from app.services import ong_service
 
 router = APIRouter()
 
 
 @router.post("/ongs", response_model=OngResponse, status_code=201)
-def create_ong(data: OngCreate, db: Session = Depends(get_db)):
+def create_ong(
+    data: OngCreate,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(require_api_key),
+):
     return ong_service.create_ong(db, data)
 
 
@@ -45,7 +50,12 @@ def get_ong(ong_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.put("/ongs/{ong_id}", response_model=OngResponse)
-def update_ong(ong_id: uuid.UUID, data: OngUpdate, db: Session = Depends(get_db)):
+def update_ong(
+    ong_id: uuid.UUID,
+    data: OngUpdate,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(require_api_key),
+):
     ong = ong_service.update_ong(db, ong_id, data)
     if not ong:
         raise HTTPException(status_code=404, detail="ONG não encontrada")
@@ -53,7 +63,11 @@ def update_ong(ong_id: uuid.UUID, data: OngUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/ongs/{ong_id}", response_model=OngResponse)
-def delete_ong(ong_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_ong(
+    ong_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(require_api_key),
+):
     ong = ong_service.delete_ong(db, ong_id)
     if not ong:
         raise HTTPException(status_code=404, detail="ONG não encontrada")

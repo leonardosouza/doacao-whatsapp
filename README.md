@@ -80,6 +80,7 @@ doacao-whatsapp/
 │   ├── main.py                  # FastAPI app + logging
 │   ├── config.py                # Settings (pydantic-settings)
 │   ├── database.py              # SQLAlchemy engine e session
+│   ├── security.py              # API Key auth (protege rotas de escrita)
 │   ├── api/routes/
 │   │   ├── health.py            # GET /api/health
 │   │   ├── webhook.py           # POST /api/webhook (Z-API)
@@ -146,6 +147,7 @@ Edite o `.env.development` com suas credenciais:
 APP_NAME=DoaZap
 APP_ENV=development
 DEBUG=True
+API_KEY=sua-api-key-secreta
 
 # OpenAI
 OPENAI_API_KEY=sk-sua-chave-openai
@@ -201,9 +203,11 @@ https://seu-dominio.com/api/webhook
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
 | `GET` | `/api/ongs` | Lista todas as ONGs parceiras |
 | `GET` | `/api/ongs/{id}` | Retorna uma ONG pelo ID |
-| `POST` | `/api/ongs` | Cadastra nova ONG parceira |
-| `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG |
-| `DELETE` | `/api/ongs/{id}` | Remove uma ONG |
+| `POST` | `/api/ongs` | Cadastra nova ONG parceira 🔒 |
+| `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG 🔒 |
+| `DELETE` | `/api/ongs/{id}` | Remove uma ONG 🔒 |
+
+> 🔒 Rotas protegidas por API Key. Envie o header `X-API-Key` com a chave configurada em `API_KEY`.
 | `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
 | `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
 
@@ -214,6 +218,7 @@ https://seu-dominio.com/api/webhook
 | `APP_NAME` | Nome da aplicação | Sim | — |
 | `APP_ENV` | Ambiente (`development`, `production`) | Não | `development` |
 | `DEBUG` | Habilita Swagger e modo debug | Não | `False` |
+| `API_KEY` | Chave para proteger rotas de escrita (ONGs) | Sim | — |
 | `OPENAI_API_KEY` | Chave da API OpenAI | Sim | — |
 | `OPENAI_MODEL` | Modelo LLM utilizado | Sim | — |
 | `OPENAI_EMBEDDING_MODEL` | Modelo de embeddings | Sim | — |

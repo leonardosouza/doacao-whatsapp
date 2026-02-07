@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_ENV: str = "development"
     DEBUG: bool = False
+    API_KEY: str
 
     # Database
     DATABASE_URL: str
