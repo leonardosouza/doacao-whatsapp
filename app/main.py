@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
-from app.api.routes import health, webhook
+from app.api.routes import health, ong, webhook
 from app.config import settings
 
 logging.basicConfig(
@@ -20,3 +20,4 @@ app = FastAPI(
 
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(webhook.router, prefix="/api", tags=["webhook"])
+app.include_router(ong.router, prefix="/api", tags=["ongs"])
