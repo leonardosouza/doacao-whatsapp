@@ -20,7 +20,9 @@ async def get_status() -> dict:
         try:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            logger.info(f"Z-API status response: {data}")
+            return data
         except httpx.HTTPError as e:
             logger.error(f"Erro ao consultar status Z-API: {e}")
             return {"connected": False, "error": str(e)}
