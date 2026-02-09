@@ -1,6 +1,9 @@
 import os
+from pathlib import Path
 
 from pydantic_settings import BaseSettings
+
+APP_VERSION = (Path(__file__).resolve().parent.parent / "VERSION").read_text().strip()
 
 APP_ENV = os.getenv("APP_ENV", "development")
 _env_file = f".env.{APP_ENV}"

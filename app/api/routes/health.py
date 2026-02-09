@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.config import APP_VERSION
 from app.database import get_db
 from app.services import zapi_service
 
@@ -25,6 +26,7 @@ async def health_check(db: Session = Depends(get_db)):
 
     return {
         "status": status,
+        "version": APP_VERSION,
         "database": db_status,
         "zapi": zapi_status,
     }
