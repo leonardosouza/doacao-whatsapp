@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.graph import process_message
 from app.database import get_db
-from app.schemas.webhook import ZAPIWebhookPayload
+from app.schemas.webhook import WebhookResponse, ZAPIWebhookPayload
 from app.services import conversation_service, zapi_service
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/webhook")
+@router.post("/webhook", response_model=WebhookResponse)
 async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get_db)):
     if payload.fromMe or payload.isGroup:
         return {"status": "ignored"}

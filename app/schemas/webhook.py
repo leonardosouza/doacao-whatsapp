@@ -26,3 +26,9 @@ class ZAPIWebhookPayload(BaseModel):
 class ZAPISendMessage(BaseModel):
     phone: str
     message: str
+
+
+class WebhookResponse(BaseModel):
+    status: str
+    reason: str | None = None
+    intent: str | None = None

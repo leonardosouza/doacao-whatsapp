@@ -1,4 +1,7 @@
+from enum import Enum
+
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -9,7 +12,24 @@ from app.services import zapi_service
 router = APIRouter()
 
 
-@router.get("/health")
+class StatusEnum(str, Enum):
+    ok = "ok"
+    degraded = "degraded"
+
+
+class ConnectionEnum(str, Enum):
+    connected = "connected"
+    disconnected = "disconnected"
+
+
+class HealthResponse(BaseModel):
+    status: StatusEnum
+    version: str
+    database: ConnectionEnum
+    zapi: ConnectionEnum
+
+
+@router.get("/health", response_model=HealthResponse)
 async def health_check(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
