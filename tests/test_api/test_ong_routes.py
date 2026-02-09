@@ -66,6 +66,15 @@ class TestUpdateOng:
         assert resp.status_code == 200
         assert resp.json()["name"] == "Novo Nome"
 
+    def test_not_found(self, client, auth_headers):
+        resp = client.put(
+            f"/api/ongs/{uuid.uuid4()}",
+            json={"name": "Inexistente"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "ONG não encontrada"
+
 
 class TestDeleteOng:
     def test_soft_delete(self, client, auth_headers, sample_ong_in_db):
@@ -80,3 +89,11 @@ class TestDeleteOng:
         list_resp = client.get("/api/ongs")
         names = [o["name"] for o in list_resp.json()]
         assert sample_ong_in_db.name not in names
+
+    def test_not_found(self, client, auth_headers):
+        resp = client.delete(
+            f"/api/ongs/{uuid.uuid4()}",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "ONG não encontrada"

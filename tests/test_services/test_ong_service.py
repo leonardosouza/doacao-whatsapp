@@ -66,6 +66,11 @@ class TestUpdateOng:
         assert ong.name == "Novo Nome"
         assert ong.category == sample_ong_in_db.category  # unchanged
 
+    def test_not_found(self, db_session):
+        data = OngUpdate(name="Inexistente")
+        result = ong_service.update_ong(db_session, uuid.uuid4(), data)
+        assert result is None
+
 
 class TestDeleteOng:
     def test_soft_delete(self, db_session, sample_ong_in_db):
@@ -74,3 +79,7 @@ class TestDeleteOng:
         # Still in DB
         found = ong_service.get_ong(db_session, sample_ong_in_db.id)
         assert found is not None
+
+    def test_not_found(self, db_session):
+        result = ong_service.delete_ong(db_session, uuid.uuid4())
+        assert result is None
