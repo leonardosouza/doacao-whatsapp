@@ -5,6 +5,11 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.1.1] - 2026-02-08
+
+### Fixed
+- Adicionar `response_model` nas rotas health e webhook para exibição correta no Swagger
+
 ## [1.1.0] - 2026-02-08
 
 ### Added
