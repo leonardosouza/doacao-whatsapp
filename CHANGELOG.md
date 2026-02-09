@@ -5,6 +5,14 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] - 2026-02-08
+
+### Added
+- Testes para cenários de 404 em update/delete de ONGs (89 testes, 99% de cobertura)
+
+### Added (infra)
+- CHANGELOG.md seguindo padrão Keep a Changelog
+
 ## [1.0.0] - 2026-02-08
 
 Release inicial com funcionalidades completas do DoaZap.
