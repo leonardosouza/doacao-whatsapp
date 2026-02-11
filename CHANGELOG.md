@@ -5,6 +5,15 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] - 2026-02-10
+
+### Added
+- Memória conversacional: agente mantém contexto entre mensagens do mesmo usuário
+- Histórico das últimas mensagens injetado nos prompts de classificação e geração
+- Configuração `CONVERSATION_HISTORY_LIMIT` para limitar mensagens no histórico
+- Funções `get_conversation_history` e `format_history` no conversation_service
+- 104 testes automatizados com 99% de cobertura
+
 ## [1.1.1] - 2026-02-08
 
 ### Fixed
