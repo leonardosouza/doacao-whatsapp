@@ -39,12 +39,13 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 2. Z-API recebe e dispara webhook `POST /api/webhook`
 3. FastAPI recebe o payload, extrai telefone e mensagem
 4. Busca/cria sessão de conversa no PostgreSQL
-5. Agente LangGraph processa a mensagem:
+5. Recupera histórico das últimas mensagens da conversa (memória conversacional)
+6. Agente LangGraph processa a mensagem com contexto do histórico:
    - **Classify** — GPT-4.1-mini identifica intent e sentimento
    - **Retrieve** — FAISS busca interações similares na base RAG
    - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
    - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
-6. Resposta é salva no banco e enviada via Z-API
+7. Resposta é salva no banco e enviada via Z-API
 
 ### Intents suportados
 
@@ -113,7 +114,7 @@ doacao-whatsapp/
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (50 interações)
 │   └── ONGS.json                # Dados das 19 ONGs parceiras
-├── tests/                         # 85 testes automatizados (98% cobertura)
+├── tests/                         # 104 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -162,6 +163,9 @@ OPENAI_TEMPERATURE=0.3
 ZAPI_INSTANCE_ID=seu-instance-id
 ZAPI_TOKEN=seu-token
 ZAPI_CLIENT_TOKEN=seu-client-token
+
+# Conversation
+CONVERSATION_HISTORY_LIMIT=10
 
 # Database
 DATABASE_URL=postgresql://doacao_user:doacao_pass@db:5432/doacao_db
@@ -230,6 +234,7 @@ https://seu-dominio.com/api/webhook
 | `ZAPI_TOKEN` | Token de autenticação Z-API | Sim | — |
 | `ZAPI_CLIENT_TOKEN` | Client token do Z-API | Sim | — |
 | `DATABASE_URL` | URL de conexão PostgreSQL | Sim | — |
+| `CONVERSATION_HISTORY_LIMIT` | Número máximo de mensagens no histórico do agente | Não | `10` |
 | `POSTGRES_USER` | Usuário PostgreSQL (docker-compose) | Não | `doacao_user` |
 | `POSTGRES_PASSWORD` | Senha PostgreSQL (docker-compose) | Não | `doacao_pass` |
 | `POSTGRES_DB` | Nome do banco (docker-compose) | Não | `doacao_db` |
@@ -276,7 +281,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **85 testes automatizados** com **98% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **104 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 

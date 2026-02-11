@@ -32,11 +32,14 @@ def build_graph(db: Session) -> CompiledStateGraph:
     return graph.compile()
 
 
-async def process_message(user_message: str, db: Session) -> dict:
+async def process_message(
+    user_message: str, db: Session, conversation_history: str = ""
+) -> dict:
     graph = build_graph(db)
 
     initial_state: ConversationState = {
         "user_message": user_message,
+        "conversation_history": conversation_history,
         "intent": "",
         "sentiment": "",
         "rag_context": [],

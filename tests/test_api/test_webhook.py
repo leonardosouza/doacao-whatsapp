@@ -51,6 +51,44 @@ class TestWebhook:
 
     @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
     @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_passes_empty_history_on_first_message(self, mock_process, mock_send, client):
+        mock_process.return_value = {
+            "response": "R",
+            "intent": "Ambíguo",
+            "sentiment": "Neutro",
+        }
+        mock_send.return_value = {}
+
+        client.post("/api/webhook", json=_make_payload(phone="5511777770000"))
+        _, kwargs = mock_process.call_args
+        assert kwargs["conversation_history"] == ""
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_passes_history_on_second_message(self, mock_process, mock_send, client):
+        mock_process.return_value = {
+            "response": "R",
+            "intent": "Ambíguo",
+            "sentiment": "Neutro",
+        }
+        mock_send.return_value = {}
+
+        # First message
+        client.post("/api/webhook", json=_make_payload(phone="5511666660000"))
+
+        # Second message — history should include first exchange
+        mock_process.reset_mock()
+        client.post(
+            "/api/webhook",
+            json=_make_payload(phone="5511666660000", text={"message": "Qual o PIX?"}),
+        )
+        _, kwargs = mock_process.call_args
+        history = kwargs["conversation_history"]
+        assert "Usuário: Quero doar" in history
+        assert "Assistente: R" in history
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
     def test_creates_conversation(self, mock_process, mock_send, client, db_session):
         mock_process.return_value = {
             "response": "Oi",

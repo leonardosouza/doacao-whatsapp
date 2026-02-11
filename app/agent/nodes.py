@@ -57,7 +57,10 @@ def _format_ong(index: int, ong: Ong) -> str:
 
 
 def classify_node(state: ConversationState) -> dict:
-    prompt = CLASSIFY_PROMPT.format(user_message=state["user_message"])
+    prompt = CLASSIFY_PROMPT.format(
+        user_message=state["user_message"],
+        conversation_history=state["conversation_history"] or "Nenhum (primeira mensagem)",
+    )
     response = llm.invoke(prompt)
 
     try:
@@ -132,6 +135,7 @@ def generate_node(state: ConversationState) -> dict:
         sentiment=state["sentiment"],
         rag_context=rag_text,
         ong_context=state["ong_context"],
+        conversation_history=state["conversation_history"] or "Nenhum (primeira mensagem)",
         user_message=state["user_message"],
     )
 

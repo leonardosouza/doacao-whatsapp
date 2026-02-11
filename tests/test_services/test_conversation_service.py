@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 from app.models.conversation import Conversation
 from app.services import conversation_service
 
@@ -47,3 +49,64 @@ class TestSaveMessage:
         )
         assert msg.intent == "Quero Doar"
         assert msg.sentiment == "Positivo"
+
+
+class TestGetConversationHistory:
+    def test_empty_history(self, db_session, sample_conversation):
+        result = conversation_service.get_conversation_history(db_session, sample_conversation)
+        assert result == []
+
+    def test_excludes_message_by_id(self, db_session, sample_conversation):
+        msg1 = conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg 1")
+        msg2 = conversation_service.save_message(db_session, sample_conversation, "outbound", "Resp 1")
+        msg3 = conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg atual")
+        result = conversation_service.get_conversation_history(
+            db_session, sample_conversation, exclude_message_id=msg3.id
+        )
+        assert len(result) == 2
+        contents = {m.content for m in result}
+        assert "Msg 1" in contents
+        assert "Resp 1" in contents
+        assert "Msg atual" not in contents
+
+    def test_without_exclude_returns_all(self, db_session, sample_conversation):
+        conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg 1")
+        conversation_service.save_message(db_session, sample_conversation, "outbound", "Resp 1")
+        result = conversation_service.get_conversation_history(db_session, sample_conversation)
+        assert len(result) == 2
+
+    def test_respects_limit(self, db_session, sample_conversation):
+        for i in range(10):
+            direction = "inbound" if i % 2 == 0 else "outbound"
+            conversation_service.save_message(db_session, sample_conversation, direction, f"Msg {i}")
+        result = conversation_service.get_conversation_history(
+            db_session, sample_conversation, limit=4
+        )
+        assert len(result) == 4
+
+    def test_only_returns_messages_from_conversation(self, db_session):
+        conv1 = Conversation(phone_number="5511111111111")
+        conv2 = Conversation(phone_number="5522222222222")
+        db_session.add_all([conv1, conv2])
+        db_session.commit()
+        conversation_service.save_message(db_session, conv1, "inbound", "Conv1 msg")
+        conversation_service.save_message(db_session, conv2, "inbound", "Conv2 msg")
+        result = conversation_service.get_conversation_history(db_session, conv1)
+        assert len(result) == 1
+        assert result[0].content == "Conv1 msg"
+
+
+class TestFormatHistory:
+    def test_empty_messages(self):
+        assert conversation_service.format_history([]) == ""
+
+    def test_formats_inbound_outbound(self):
+        msg1 = MagicMock(direction="inbound", content="Oi")
+        msg2 = MagicMock(direction="outbound", content="Olá!")
+        result = conversation_service.format_history([msg1, msg2])
+        assert result == "Usuário: Oi\nAssistente: Olá!"
+
+    def test_single_message(self):
+        msg = MagicMock(direction="inbound", content="Quero doar")
+        result = conversation_service.format_history([msg])
+        assert result == "Usuário: Quero doar"

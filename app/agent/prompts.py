@@ -19,7 +19,13 @@ Sentimentos possíveis:
 - "Neutro" — tom informativo, sem carga emocional
 - "Negativo" — pessoa insatisfeita ou em dificuldade (sem ser urgente)
 
-Mensagem do usuário: {user_message}"""
+IMPORTANTE: Use o histórico da conversa para entender o contexto completo.
+Se a mensagem atual é continuação de um assunto anterior, classifique de acordo.
+
+Histórico da conversa:
+{conversation_history}
+
+Mensagem atual do usuário: {user_message}"""
 
 GENERATE_PROMPT = """Você é o assistente virtual do DoaZap no WhatsApp, uma plataforma \
 que conecta pessoas a diversas ONGs parceiras.
@@ -35,6 +41,7 @@ DIRETRIZES DE COMPORTAMENTO:
 - Respostas curtas e diretas, adequadas ao WhatsApp
 - Use emojis com moderação para tornar a conversa mais humana
 - Sugira ONGs relevantes ao contexto do usuário com base nos dados abaixo
+- Leve em conta o histórico da conversa para manter continuidade e não repetir informações
 
 ONGS PARCEIRAS CADASTRADAS:
 {ong_context}
@@ -42,6 +49,9 @@ ONGS PARCEIRAS CADASTRADAS:
 CONTEXTO DA CONVERSA:
 - Intent detectado: {intent}
 - Sentimento detectado: {sentiment}
+
+HISTÓRICO DA CONVERSA:
+{conversation_history}
 
 EXEMPLOS DE INTERAÇÕES SIMILARES (use como referência de tom e conteúdo):
 {rag_context}

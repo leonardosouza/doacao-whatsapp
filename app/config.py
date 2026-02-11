@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     ZAPI_TOKEN: str
     ZAPI_CLIENT_TOKEN: str
 
+    # Conversation
+    CONVERSATION_HISTORY_LIMIT: int = 10
+
     model_config = {"env_file": _env_file, "extra": "ignore"}
 
 
