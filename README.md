@@ -386,6 +386,21 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 | Ronildo Mendes Viana | ronildo.viana@aluno.impacta.edu.br |
 | Vinicius Alcarde Goia | vinicius.goia@aluno.impacta.edu.br |
 
+## Testes de Carga
+
+Scripts e relatórios de stress test mantidos no repositório [doazap-stress-test](https://github.com/leonardosouza/doazap-stress-test) (Locust).
+
+| Cenário | Relatório |
+|---------|-----------|
+| Consolidado (análise geral + ponto de ruptura) | [report_consolidado.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_consolidado.md) |
+| 10 usuários simultâneos | [report_10u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_10u.md) |
+| 20 usuários simultâneos | [report_20u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_20u.md) |
+| 30 usuários simultâneos | [report_30u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_30u.md) |
+| 50 usuários simultâneos | [report_50u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_50u.md) |
+| 100 usuários simultâneos | [report_100u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_100u.md) |
+
+> O ponto de ruptura identificado é entre **20 e 30 usuários simultâneos** no plano Free Tier do Render.
+
 ## Changelog
 
 Todas as versões e mudanças estão documentadas em [CHANGELOG.md](CHANGELOG.md).
