@@ -29,8 +29,7 @@ class HealthResponse(BaseModel):
     zapi: ConnectionEnum
 
 
-@router.get("/health", response_model=HealthResponse)
-async def health_check(db: Session = Depends(get_db)):
+async def _health_check(db: Session) -> dict:
     try:
         db.execute(text("SELECT 1"))
         db_status = "connected"
@@ -50,3 +49,13 @@ async def health_check(db: Session = Depends(get_db)):
         "database": db_status,
         "zapi": zapi_status,
     }
+
+
+@router.get("/health", response_model=HealthResponse)
+async def health_check_get(db: Session = Depends(get_db)):
+    return await _health_check(db)
+
+
+@router.post("/health", response_model=HealthResponse)
+async def health_check_post(db: Session = Depends(get_db)):
+    return await _health_check(db)
