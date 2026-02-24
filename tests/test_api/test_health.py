@@ -61,3 +61,47 @@ class TestHealthCheck:
         assert data["status"] == "degraded"
         assert data["database"] == "disconnected"
         assert data["zapi"] == "disconnected"
+
+
+class TestHealthCheckPost:
+    @patch("app.api.routes.health.zapi_service.get_status", new_callable=AsyncMock)
+    def test_all_ok(self, mock_zapi, client):
+        mock_zapi.return_value = {"connected": True}
+        resp = client.post("/api/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["database"] == "connected"
+        assert data["zapi"] == "connected"
+
+    @patch("app.api.routes.health.zapi_service.get_status", new_callable=AsyncMock)
+    def test_zapi_disconnected(self, mock_zapi, client):
+        mock_zapi.return_value = {"connected": False}
+        resp = client.post("/api/health")
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["zapi"] == "disconnected"
+
+    @patch("app.api.routes.health.zapi_service.get_status", new_callable=AsyncMock)
+    def test_db_disconnected(self, mock_zapi, client):
+        mock_zapi.return_value = {"connected": True}
+
+        from app.main import app as fastapi_app
+
+        mock_session = MagicMock()
+        mock_session.execute.side_effect = Exception("DB down")
+
+        def override_get_db():
+            yield mock_session
+
+        fastapi_app.dependency_overrides[get_db] = override_get_db
+        resp = client.post("/api/health")
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["database"] == "disconnected"
+
+    @patch("app.api.routes.health.zapi_service.get_status", new_callable=AsyncMock)
+    def test_returns_version(self, mock_zapi, client):
+        mock_zapi.return_value = {"connected": True}
+        resp = client.post("/api/health")
+        assert "version" in resp.json()

@@ -5,6 +5,11 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.3.1] - 2026-02-24
+
+### Fixed
+- Adicionados testes para `POST /api/health` (cobertura de 97% → 100% em `health.py`)
+
 ## [1.3.0] - 2026-02-23
 
 ### Added
