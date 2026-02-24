@@ -5,6 +5,14 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Added
+- Integração com New Relic APM para monitoramento de performance em produção
+- Instrumentação automática via `newrelic-admin run-program` (sem arquivo de configuração no repositório)
+- Variáveis `NEW_RELIC_*` documentadas no `.env.example`
+- Monitoramento automático de requisições HTTP, queries SQL, chamadas externas (OpenAI, Z-API) e erros
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
