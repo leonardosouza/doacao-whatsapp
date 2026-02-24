@@ -85,7 +85,7 @@ doacao-whatsapp/
 │   ├── database.py              # SQLAlchemy engine e session
 │   ├── security.py              # API Key auth (protege rotas de escrita)
 │   ├── api/routes/
-│   │   ├── health.py            # GET /api/health
+│   │   ├── health.py            # GET e POST /api/health
 │   │   ├── webhook.py           # POST /api/webhook (Z-API)
 │   │   └── ong.py               # CRUD /api/ongs (ONGs parceiras)
 │   ├── models/
@@ -281,13 +281,16 @@ curl https://doacao-whatsapp.onrender.com/api/health
 
 Acesse as métricas de performance, erros e throughput em:
 
-```
-https://one.newrelic.com → APM & Services → DoaZap
-```
+| Ambiente | URL |
+|----------|-----|
+| Produção (`DoaZap`) | [one.newrelic.com → APM & Services → DoaZap](https://one.newrelic.com/apm) |
+| Desenvolvimento (`DoaZap (Dev)`) | [one.newrelic.com → APM & Services → DoaZap (Dev)](https://one.newrelic.com/apm) |
+
+> O ambiente de desenvolvimento só aparece no New Relic enquanto a aplicação local estiver rodando com as variáveis `NEW_RELIC_*` configuradas no `.env.development`.
 
 ### Monitor Sintético (New Relic Synthetics)
 
-O endpoint `POST /api/health` está disponível para uso com o New Relic Synthetics:
+O endpoint `POST /api/health` está disponível para uso com o [New Relic Synthetics](https://one.newrelic.com/synthetics):
 
 ```
 https://doacao-whatsapp.onrender.com/api/health
@@ -309,7 +312,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **104 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **108 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 
@@ -359,7 +362,7 @@ tests/
 | Módulo | Cobertura |
 |--------|:---------:|
 | agent (graph, nodes, prompts, state) | 100% |
-| api/routes (health, webhook, ong) | 97% |
+| api/routes (health, webhook, ong) | 100% |
 | schemas (webhook, ong) | 100% |
 | security | 100% |
 | services (conversation, ong, zapi) | 98% |
