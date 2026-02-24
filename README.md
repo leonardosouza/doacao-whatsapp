@@ -73,6 +73,7 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 | Testes | pytest + pytest-asyncio + pytest-cov |
 | Hosting | Render |
 | WhatsApp | Z-API |
+| Observabilidade | New Relic APM |
 
 ## Estrutura do Projeto
 
@@ -238,6 +239,11 @@ https://seu-dominio.com/api/webhook
 | `POSTGRES_USER` | Usuário PostgreSQL (docker-compose) | Não | `doacao_user` |
 | `POSTGRES_PASSWORD` | Senha PostgreSQL (docker-compose) | Não | `doacao_pass` |
 | `POSTGRES_DB` | Nome do banco (docker-compose) | Não | `doacao_db` |
+| `NEW_RELIC_LICENSE_KEY` | Chave de licença do New Relic (Ingest - License) | Sim | — |
+| `NEW_RELIC_APP_NAME` | Nome da aplicação no New Relic | Não | `DoaZap` |
+| `NEW_RELIC_LOG` | Destino dos logs do agente New Relic | Não | `stdout` |
+| `NEW_RELIC_LOG_LEVEL` | Nível de log do agente New Relic | Não | `info` |
+| `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED` | Habilita rastreamento distribuído | Não | `true` |
 
 ## Deploy em Produção
 
@@ -249,21 +255,33 @@ A aplicação está hospedada no [Render](https://render.com/) com banco de dado
 |---------|------------|
 | Aplicação (FastAPI) | Render (Web Service) |
 | Banco de Dados (PostgreSQL) | Supabase (Connection Pooler) |
+| Monitoramento / APM | New Relic |
 
 ### Configuração
 
 1. Crie um Web Service no Render apontando para este repositório
 2. Configure as variáveis de ambiente no painel do Render (mesmas do `.env.production`)
 3. Para o `DATABASE_URL`, utilize a connection string do Supabase (pooler)
-4. Configure o webhook no Z-API apontando para `https://seu-app.onrender.com/api/webhook`
+4. Configure as variáveis `NEW_RELIC_LICENSE_KEY` e `NEW_RELIC_APP_NAME` no Render
+5. Configure o webhook no Z-API apontando para `https://doacao-whatsapp.onrender.com/api/webhook`
+
+O agente New Relic é iniciado automaticamente via `newrelic-admin run-program` (definido no `Dockerfile`), sem necessidade de arquivo de configuração no repositório.
 
 ### Health Check
 
 Verifique o status da aplicação e conexão com o banco:
 
 ```bash
-curl https://seu-app.onrender.com/api/health
+curl https://doacao-whatsapp.onrender.com/api/health
 # {"status": "ok", "database": "connected", "zapi": "connected"}
+```
+
+### Monitoramento (New Relic APM)
+
+Acesse as métricas de performance, erros e throughput em:
+
+```
+https://one.newrelic.com → APM & Services → DoaZap
 ```
 
 ## Desenvolvimento Local
