@@ -12,6 +12,7 @@ e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Instrumentação automática via `newrelic-admin run-program` (sem arquivo de configuração no repositório)
 - Variáveis `NEW_RELIC_*` documentadas no `.env.example`
 - Monitoramento automático de requisições HTTP, queries SQL, chamadas externas (OpenAI, Z-API) e erros
+- Suporte a `POST /api/health` para uso com monitor sintético do New Relic Synthetics
 
 ## [1.2.0] - 2026-02-10
 

@@ -208,6 +208,7 @@ https://seu-dominio.com/api/webhook
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/api/health` | Health check (verifica banco de dados e Z-API) |
+| `POST` | `/api/health` | Health check via POST (para monitor sintético New Relic) |
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
 | `GET` | `/api/ongs` | Lista todas as ONGs parceiras |
 | `GET` | `/api/ongs/{id}` | Retorna uma ONG pelo ID |
@@ -282,6 +283,15 @@ Acesse as métricas de performance, erros e throughput em:
 
 ```
 https://one.newrelic.com → APM & Services → DoaZap
+```
+
+### Monitor Sintético (New Relic Synthetics)
+
+O endpoint `POST /api/health` está disponível para uso com o New Relic Synthetics:
+
+```
+https://doacao-whatsapp.onrender.com/api/health
+Método: POST
 ```
 
 ## Desenvolvimento Local
