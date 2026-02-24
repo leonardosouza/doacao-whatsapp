@@ -386,6 +386,10 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 | Ronildo Mendes Viana | ronildo.viana@aluno.impacta.edu.br |
 | Vinicius Alcarde Goia | vinicius.goia@aluno.impacta.edu.br |
 
+## Changelog
+
+Todas as versões e mudanças estão documentadas em [CHANGELOG.md](CHANGELOG.md).
+
 ## Licença
 
 MIT
