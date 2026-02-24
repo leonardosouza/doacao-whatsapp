@@ -390,14 +390,14 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 
 Scripts e relatórios de stress test mantidos no repositório [doazap-stress-test](https://github.com/leonardosouza/doazap-stress-test) (Locust).
 
-| Cenário | Relatório |
-|---------|-----------|
-| Consolidado (análise geral + ponto de ruptura) | [report_consolidado.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_consolidado.md) |
-| 10 usuários simultâneos | [report_10u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_10u.md) |
-| 20 usuários simultâneos | [report_20u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_20u.md) |
-| 30 usuários simultâneos | [report_30u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_30u.md) |
-| 50 usuários simultâneos | [report_50u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_50u.md) |
-| 100 usuários simultâneos | [report_100u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_100u.md) |
+| Cenário | Markdown | HTML interativo |
+|---------|----------|-----------------|
+| Consolidado (análise geral + ponto de ruptura) | [report_consolidado.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_consolidado.md) | — |
+| 10 usuários simultâneos | [report_10u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_10u.md) | [report_10u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_10u.html) |
+| 20 usuários simultâneos | [report_20u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_20u.md) | [report_20u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_20u.html) |
+| 30 usuários simultâneos | [report_30u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_30u.md) | [report_30u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_30u.html) |
+| 50 usuários simultâneos | [report_50u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_50u.md) | [report_50u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_50u.html) |
+| 100 usuários simultâneos | [report_100u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_100u.md) | [report_100u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_100u.html) |
 
 > O ponto de ruptura identificado é entre **20 e 30 usuários simultâneos** no plano Free Tier do Render.
 
