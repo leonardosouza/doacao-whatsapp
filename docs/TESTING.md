@@ -74,3 +74,7 @@ Scripts e relatórios de stress test mantidos no repositório [doazap-stress-tes
 | 100 usuários simultâneos | [report_100u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_100u.md) | [report_100u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_100u.html) |
 
 > O ponto de ruptura identificado é entre **20 e 30 usuários simultâneos** no plano Free Tier do Render.
+
+---
+
+[← Voltar ao README](../README.md)

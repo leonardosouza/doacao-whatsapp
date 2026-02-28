@@ -134,3 +134,7 @@ Todas as tabelas do schema `public` têm **Row Level Security habilitado** para 
 | `alembic_version` | ✅ | Nenhuma — bloqueado completamente |
 
 O app FastAPI conecta como `postgres` (superusuário) e **não é afetado** pelo RLS — superusuários contornam RLS por padrão no PostgreSQL. O Alembic também opera como superusuário e continua executando migrations normalmente.
+
+---
+
+[← Voltar ao README](../README.md)

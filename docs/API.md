@@ -33,3 +33,7 @@ X-API-Key: sua-api-key-secreta
 curl https://doacao-whatsapp.onrender.com/api/health
 # {"status": "ok", "database": "connected", "zapi": "connected"}
 ```
+
+---
+
+[← Voltar ao README](../README.md)

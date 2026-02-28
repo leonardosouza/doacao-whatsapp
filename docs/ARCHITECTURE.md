@@ -108,3 +108,7 @@ Mensagens de áudio, vídeo, imagem, documento ou sticker são identificadas pel
 ## Resiliência do Webhook
 
 O Z-API pode reenviar o mesmo webhook quando o servidor demora a responder. Para evitar respostas duplicadas, cada mensagem inbound é gravada com o `messageId` do Z-API (campo único no banco). Webhooks com `messageId` já registrado são descartados imediatamente, antes de qualquer chamada ao agente.
+
+---
+
+[← Voltar ao README](../README.md)

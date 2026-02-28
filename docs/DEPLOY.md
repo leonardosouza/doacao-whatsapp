@@ -57,3 +57,7 @@ curl -s -X POST "https://api.render.com/v1/services/{SERVICE_ID}/deploys" \
   -H "Content-Type: application/json" \
   -d '{"clearCache": "do_not_clear"}'
 ```
+
+---
+
+[← Voltar ao README](../README.md)

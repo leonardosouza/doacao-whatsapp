@@ -47,3 +47,7 @@ python scripts/generate_graph.py
 ```
 
 A imagem gerada está versionada em [`docs/agent_graph.png`](agent_graph.png).
+
+---
+
+[← Voltar ao README](../README.md)

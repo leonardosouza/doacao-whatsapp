@@ -159,3 +159,7 @@ Todas as requisições HTTP para a Z-API têm timeout de **10 segundos** (`_ZAPI
 ## Reportar Vulnerabilidades
 
 Para reportar uma vulnerabilidade de segurança, entre em contato diretamente com a equipe via e-mail institucional (ver [README](../README.md#equipe)). Não abra issues públicas para vulnerabilidades de segurança.
+
+---
+
+[← Voltar ao README](../README.md)
