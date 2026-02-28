@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # Segurança
 
 Este documento descreve as medidas de segurança implementadas no DoaZap, organizadas por camada.

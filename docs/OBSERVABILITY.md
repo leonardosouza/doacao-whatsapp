@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # Observabilidade e Troubleshooting
 
 O banco de dados armazena todos os timestamps em **UTC** (padrão correto para sistemas distribuídos). Para facilitar a correlação de eventos durante incident response, a equipe (fuso horário: São Paulo, UTC-3) conta com três ferramentas de exibição em horário local.

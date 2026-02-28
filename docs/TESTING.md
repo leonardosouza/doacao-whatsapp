@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # Testes
 
 O projeto possui **162 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).

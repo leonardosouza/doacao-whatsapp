@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # Arquitetura do DoaZap
 
 ## Visão Geral

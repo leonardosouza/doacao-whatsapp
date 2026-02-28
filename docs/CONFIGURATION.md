@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # Configuração e Execução
 
 ## Pré-requisitos

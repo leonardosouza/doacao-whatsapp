@@ -1,3 +1,5 @@
+[← Voltar ao README](../README.md)
+
 # API Reference
 
 ## Endpoints
