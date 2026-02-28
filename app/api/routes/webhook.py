@@ -23,6 +23,10 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
     if not message_text:
         return {"status": "ignored", "reason": "no text content"}
 
+    if conversation_service.is_duplicate_message(db, payload.messageId):
+        logger.warning(f"Webhook duplicado ignorado: messageId={payload.messageId}")
+        return {"status": "ignored", "reason": "duplicate"}
+
     logger.info(f"Mensagem recebida de {payload.phone}: {message_text}")
 
     conversation = conversation_service.get_or_create_conversation(
@@ -34,6 +38,7 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         conversation=conversation,
         direction="inbound",
         content=message_text,
+        zapi_message_id=payload.messageId,
     )
 
     # Recupera histórico da conversa para contexto do agente (exclui a mensagem atual)

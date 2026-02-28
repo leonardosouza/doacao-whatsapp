@@ -37,6 +37,7 @@ class TestSaveMessage:
         assert msg.content == "Olá"
         assert msg.intent is None
         assert msg.sentiment is None
+        assert msg.zapi_message_id is None
 
     def test_save_message_with_intent(self, db_session, sample_conversation):
         msg = conversation_service.save_message(
@@ -49,6 +50,31 @@ class TestSaveMessage:
         )
         assert msg.intent == "Quero Doar"
         assert msg.sentiment == "Positivo"
+
+    def test_save_message_with_zapi_message_id(self, db_session, sample_conversation):
+        msg = conversation_service.save_message(
+            db_session,
+            conversation=sample_conversation,
+            direction="inbound",
+            content="Oi",
+            zapi_message_id="zapi-abc-123",
+        )
+        assert msg.zapi_message_id == "zapi-abc-123"
+
+
+class TestIsDuplicateMessage:
+    def test_returns_false_for_unknown_id(self, db_session):
+        assert conversation_service.is_duplicate_message(db_session, "id-desconhecido") is False
+
+    def test_returns_true_after_saving(self, db_session, sample_conversation):
+        conversation_service.save_message(
+            db_session,
+            conversation=sample_conversation,
+            direction="inbound",
+            content="Oi",
+            zapi_message_id="zapi-dup-001",
+        )
+        assert conversation_service.is_duplicate_message(db_session, "zapi-dup-001") is True
 
 
 class TestGetConversationHistory:

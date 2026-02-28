@@ -5,6 +5,19 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.2] - 2026-02-28
+
+### Fixed
+- **Respostas duplicadas**: deduplicação de webhooks via `messageId` do Z-API
+  - Campo `zapi_message_id` (unique) adicionado à tabela `messages`
+  - Webhook handler retorna `ignored/duplicate` imediatamente se o `messageId` já foi processado
+  - Elimina respostas duplas causadas por reentrega do Z-API quando o servidor demora a responder
+
+### Infrastructure
+- Migration 010: `ADD COLUMN zapi_message_id VARCHAR(100) UNIQUE TO messages`
+
+---
+
 ## [1.5.1] - 2026-02-28
 
 ### Removed

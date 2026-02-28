@@ -21,6 +21,9 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     intent: Mapped[str | None] = mapped_column(String(50), nullable=True)
     sentiment: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    zapi_message_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, unique=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

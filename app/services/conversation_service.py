@@ -29,6 +29,11 @@ def get_or_create_conversation(db: Session, phone_number: str) -> Conversation:
     return conversation
 
 
+def is_duplicate_message(db: Session, zapi_message_id: str) -> bool:
+    """Verifica se o messageId do Z-API já foi processado (deduplicação de webhook)."""
+    return db.query(Message).filter(Message.zapi_message_id == zapi_message_id).first() is not None
+
+
 def save_message(
     db: Session,
     conversation: Conversation,
@@ -36,6 +41,7 @@ def save_message(
     content: str,
     intent: str | None = None,
     sentiment: str | None = None,
+    zapi_message_id: str | None = None,
 ) -> Message:
     message = Message(
         conversation_id=conversation.id,
@@ -43,6 +49,7 @@ def save_message(
         content=content,
         intent=intent,
         sentiment=sentiment,
+        zapi_message_id=zapi_message_id,
     )
     db.add(message)
 

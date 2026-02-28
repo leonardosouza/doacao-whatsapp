@@ -34,6 +34,26 @@ class TestWebhook:
 
     @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
     @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_ignores_duplicate_message_id(self, mock_process, mock_send, client):
+        """Segundo webhook com mesmo messageId deve ser ignorado sem chamar o agente."""
+        mock_process.return_value = {
+            "response": "Olá!",
+            "intent": "Ambíguo",
+            "sentiment": "Neutro",
+        }
+        mock_send.return_value = {}
+
+        payload = _make_payload(messageId="msg-dup-001", phone="5511000001111")
+        first = client.post("/api/webhook", json=payload)
+        assert first.json()["status"] == "processed"
+
+        second = client.post("/api/webhook", json=payload)
+        assert second.json()["status"] == "ignored"
+        assert second.json()["reason"] == "duplicate"
+        mock_process.assert_called_once()  # agente chamado apenas uma vez
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
     def test_processes_valid_message(self, mock_process, mock_send, client):
         mock_process.return_value = {
             "response": "Olá! Como posso ajudar?",
@@ -74,13 +94,13 @@ class TestWebhook:
         mock_send.return_value = {}
 
         # First message
-        client.post("/api/webhook", json=_make_payload(phone="5511666660000"))
+        client.post("/api/webhook", json=_make_payload(phone="5511666660000", messageId="msg-hist-1"))
 
         # Second message — history should include first exchange
         mock_process.reset_mock()
         client.post(
             "/api/webhook",
-            json=_make_payload(phone="5511666660000", text={"message": "Qual o PIX?"}),
+            json=_make_payload(phone="5511666660000", messageId="msg-hist-2", text={"message": "Qual o PIX?"}),
         )
         _, kwargs = mock_process.call_args
         history = kwargs["conversation_history"]
