@@ -5,11 +5,18 @@ import re
 from langchain_openai import ChatOpenAI
 from sqlalchemy.orm import Session
 
-from app.agent.prompts import CLASSIFY_PROMPT, GENERATE_PROMPT
+from app.agent.prompts import (
+    CLASSIFY_PROMPT,
+    EXTRACT_NAME_PROMPT,
+    GENERATE_PROMPT,
+    PROFILE_COLLECT_PROMPT,
+)
 from app.agent.state import ConversationState
 from app.config import settings
+from app.models.message import Message
 from app.models.ong import Ong
 from app.rag.retriever import retrieve_similar
+from app.services import conversation_service
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +33,27 @@ def _extract_json(text: str) -> str:
     if match:
         return match.group(1)
     return text.strip()
+
+
+def _bot_asked_for_name(last_bot_content: str | None) -> bool:
+    """Verifica se a última mensagem do bot solicitou o nome do usuário."""
+    if not last_bot_content:
+        return False
+    keywords = ["seu nome", "como você se chama", "qual é o seu nome", "qual seu nome"]
+    return any(kw in last_bot_content.lower() for kw in keywords)
+
+
+def _bot_asked_for_email(last_bot_content: str | None) -> bool:
+    """Verifica se a última mensagem do bot solicitou o email do usuário."""
+    if not last_bot_content:
+        return False
+    return "email" in last_bot_content.lower() or "e-mail" in last_bot_content.lower()
+
+
+def _extract_email_from_text(text: str) -> str | None:
+    """Extrai endereço de email de um texto via regex."""
+    match = re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", text)
+    return match.group(0) if match else None
 
 
 def _format_ong(index: int, ong: Ong) -> str:
@@ -54,6 +82,88 @@ def _format_ong(index: int, ong: Ong) -> str:
         lines.append(f"   Doação: {ong.donation_url}")
 
     return "\n".join(lines)
+
+
+def make_profile_node(db: Session, conversation):
+    """Cria o profile_node com acesso à conversa via closure.
+
+    Verifica o estágio de coleta de perfil e extrai nome/email da mensagem
+    quando o bot havia solicitado essa informação na interação anterior.
+    """
+
+    def profile_node(state: ConversationState) -> dict:
+        user_name = conversation.user_name
+        user_email = conversation.user_email
+
+        last_bot_msg = (
+            db.query(Message)
+            .filter(
+                Message.conversation_id == conversation.id,
+                Message.direction == "outbound",
+            )
+            .order_by(Message.created_at.desc())
+            .first()
+        )
+        last_bot_content = last_bot_msg.content if last_bot_msg else None
+
+        if user_name is None:
+            if _bot_asked_for_name(last_bot_content):
+                prompt = EXTRACT_NAME_PROMPT.format(user_message=state["user_message"])
+                response = llm.invoke(prompt)
+                try:
+                    raw = _extract_json(response.content)
+                    data = json.loads(raw)
+                    if data.get("extracted") and data.get("name"):
+                        user_name = data["name"].strip()
+                        conversation_service.update_user_profile(db, conversation, user_name=user_name)
+                        conversation.user_name = user_name
+                except (json.JSONDecodeError, AttributeError):
+                    logger.warning("Falha ao extrair nome do usuário")
+
+            profile_stage = "collecting_name" if user_name is None else (
+                "collecting_email" if user_email is None else "complete"
+            )
+
+        elif user_email is None:
+            if _bot_asked_for_email(last_bot_content):
+                extracted_email = _extract_email_from_text(state["user_message"])
+                if extracted_email:
+                    conversation_service.update_user_profile(db, conversation, user_email=extracted_email)
+                    conversation.user_email = extracted_email
+                    user_email = extracted_email
+
+            profile_stage = "complete" if user_email else "collecting_email"
+
+        else:
+            profile_stage = "complete"
+
+        logger.info(f"Profile: stage={profile_stage}, name={user_name}, email={user_email}")
+        return {
+            "user_name": user_name,
+            "user_email": user_email,
+            "profile_stage": profile_stage,
+        }
+
+    return profile_node
+
+
+def profile_response_node(state: ConversationState) -> dict:
+    """Gera a resposta de coleta de perfil (nome ou email)."""
+    prompt = PROFILE_COLLECT_PROMPT.format(
+        profile_stage=state["profile_stage"],
+        user_name=state["user_name"] or "",
+        user_message=state["user_message"],
+    )
+    response = llm.invoke(prompt)
+    logger.info(f"Resposta de coleta de perfil gerada (stage={state['profile_stage']})")
+    return {"response": response.content, "intent": "Ambíguo", "sentiment": "Neutro"}
+
+
+def route_profile(state: ConversationState) -> str:
+    """Decide o próximo nó com base no estágio de coleta de perfil."""
+    if state["profile_stage"] in ("collecting_name", "collecting_email"):
+        return "profile_response"
+    return "classify"
 
 
 def classify_node(state: ConversationState) -> dict:
@@ -87,6 +197,10 @@ def make_enrich_node(db: Session):
 
     def enrich_node(state: ConversationState) -> dict:
         intent = state["intent"]
+
+        if intent == "Fora do Escopo":
+            logger.info("Enrich: intent 'Fora do Escopo' — busca de ONGs ignorada")
+            return {"ong_context": ""}
 
         query = db.query(Ong).filter(Ong.is_active.is_(True))
 

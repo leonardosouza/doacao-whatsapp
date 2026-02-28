@@ -110,3 +110,38 @@ class TestFormatHistory:
         msg = MagicMock(direction="inbound", content="Quero doar")
         result = conversation_service.format_history([msg])
         assert result == "Usuário: Quero doar"
+
+
+class TestUpdateUserProfile:
+    def test_sets_name(self, db_session, sample_conversation):
+        result = conversation_service.update_user_profile(
+            db_session, sample_conversation, user_name="Maria"
+        )
+        assert result.user_name == "Maria"
+        assert result.user_email is None
+
+    def test_sets_email(self, db_session, sample_conversation):
+        result = conversation_service.update_user_profile(
+            db_session, sample_conversation, user_email="maria@email.com"
+        )
+        assert result.user_email == "maria@email.com"
+        assert result.user_name is None
+
+    def test_partial_update_preserves_existing(self, db_session, sample_conversation):
+        conversation_service.update_user_profile(
+            db_session, sample_conversation, user_name="Maria"
+        )
+        result = conversation_service.update_user_profile(
+            db_session, sample_conversation, user_email="maria@email.com"
+        )
+        assert result.user_name == "Maria"
+        assert result.user_email == "maria@email.com"
+
+    def test_persists_to_db(self, db_session, sample_conversation):
+        conversation_service.update_user_profile(
+            db_session, sample_conversation, user_name="Pedro", user_email="pedro@email.com"
+        )
+        db_session.expire(sample_conversation)
+        refreshed = db_session.get(Conversation, sample_conversation.id)
+        assert refreshed.user_name == "Pedro"
+        assert refreshed.user_email == "pedro@email.com"
