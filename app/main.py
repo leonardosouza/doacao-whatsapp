@@ -1,14 +1,28 @@
 import logging
+import zoneinfo
+from datetime import datetime
 
 from fastapi import FastAPI
 
 from app.api.routes import health, ong, webhook
 from app.config import APP_VERSION, settings
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+
+class _SPFormatter(logging.Formatter):
+    """Formata timestamps dos logs no fuso horário de São Paulo (UTC-3)."""
+
+    _tz = zoneinfo.ZoneInfo("America/Sao_Paulo")
+
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=self._tz)
+        if datefmt:
+            return dt.strftime(datefmt)
+        return dt.strftime("%Y-%m-%d %H:%M:%S") + f",{record.msecs:03.0f}"
+
+
+_handler = logging.StreamHandler()
+_handler.setFormatter(_SPFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
 
 app = FastAPI(
     title=settings.APP_NAME,

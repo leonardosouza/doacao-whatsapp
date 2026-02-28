@@ -5,6 +5,29 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.8] - 2026-02-28
+
+### Added
+- **Logs do Render em horário de São Paulo**: `_SPFormatter` customizado em `app/main.py`
+  substitui o `logging.basicConfig` padrão (UTC) por um formatter que usa
+  `zoneinfo.ZoneInfo("America/Sao_Paulo")` — sem dependências externas (Python 3.9+ built-in).
+  Logs passam de `17:46:19` para `14:46:19` — correlação de eventos durante incident response
+  significativamente facilitada.
+- **Script psql com timezone SP**: `scripts/psql-production.sh` conecta ao banco de produção
+  com `PGOPTIONS="-c timezone=America/Sao_Paulo"` — todos os `timestamptz` exibidos em horário
+  SP automaticamente sem precisar de `AT TIME ZONE` manual em cada query.
+- **Views diagnósticas no banco** (migration 014):
+  - `v_messages_sp`: mensagens com `phone_number` (via JOIN) e `created_at_sp` em horário SP
+  - `v_conversations_sp`: conversas com `started_at_sp` e `last_message_at_sp` em horário SP
+  - Disponíveis no Supabase Table Editor para incident response sem necessidade de psql
+  - Nenhum GRANT para `anon`/`authenticated` — acesso restrito ao superusuário postgres
+
+### Notes
+- Armazenamento em UTC mantido (padrão correto para sistemas distribuídos) — apenas a **exibição**
+  de troubleshooting foi ajustada para o fuso horário da equipe (São Paulo, UTC-3)
+
+---
+
 ## [1.5.7] - 2026-02-28
 
 ### Security
