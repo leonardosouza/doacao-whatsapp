@@ -353,12 +353,12 @@ class TestMakeProfileNode:
         return db
 
     def test_collecting_name_on_first_interaction(self):
-        """Sem mensagem anterior do bot → stage = 'collecting_name'."""
+        """Sem mensagem anterior do bot → stage = 'greeting' (apresentação do DoaZap)."""
         conv = self._make_conv()
         db = self._make_db(last_bot_content=None)
         node = make_profile_node(db, conv)
         result = node({**self._BASE_STATE, "user_message": "Oi"})
-        assert result["profile_stage"] == "collecting_name"
+        assert result["profile_stage"] == "greeting"
         assert result["user_name"] is None
 
     @patch("app.agent.nodes.conversation_service")
@@ -416,6 +416,15 @@ class TestMakeProfileNode:
         result = node({**self._BASE_STATE})
         assert result["profile_stage"] == "complete"
         mock_llm.invoke.assert_not_called()
+
+    def test_profile_node_greeting_on_first_interaction(self):
+        """Primeira mensagem sem bot anterior → stage = 'greeting', sem chamar LLM."""
+        conv = self._make_conv()
+        db = self._make_db(last_bot_content=None)
+        node = make_profile_node(db, conv)
+        result = node({**self._BASE_STATE, "user_message": "Oi"})
+        assert result["profile_stage"] == "greeting"
+        assert result["user_name"] is None
 
 
 # ── profile_response_node ────────────────────────────────────────────
@@ -482,6 +491,9 @@ class TestRouteProfile:
 
     def test_returns_profile_response_when_collecting_email(self):
         assert route_profile(self._state("collecting_email")) == "profile_response"
+
+    def test_returns_profile_response_when_greeting(self):
+        assert route_profile(self._state("greeting")) == "profile_response"
 
     def test_returns_classify_when_complete(self):
         assert route_profile(self._state("complete")) == "classify"

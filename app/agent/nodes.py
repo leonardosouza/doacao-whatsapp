@@ -107,22 +107,26 @@ def make_profile_node(db: Session, conversation):
         last_bot_content = last_bot_msg.content if last_bot_msg else None
 
         if user_name is None:
-            if _bot_asked_for_name(last_bot_content):
-                prompt = EXTRACT_NAME_PROMPT.format(user_message=state["user_message"])
-                response = llm.invoke(prompt)
-                try:
-                    raw = _extract_json(response.content)
-                    data = json.loads(raw)
-                    if data.get("extracted") and data.get("name"):
-                        user_name = data["name"].strip()
-                        conversation_service.update_user_profile(db, conversation, user_name=user_name)
-                        conversation.user_name = user_name
-                except (json.JSONDecodeError, AttributeError):
-                    logger.warning("Falha ao extrair nome do usuário")
+            if last_bot_content is None:
+                # Primeira interação: nenhuma mensagem anterior do bot → apresentar DoaZap
+                profile_stage = "greeting"
+            else:
+                if _bot_asked_for_name(last_bot_content):
+                    prompt = EXTRACT_NAME_PROMPT.format(user_message=state["user_message"])
+                    response = llm.invoke(prompt)
+                    try:
+                        raw = _extract_json(response.content)
+                        data = json.loads(raw)
+                        if data.get("extracted") and data.get("name"):
+                            user_name = data["name"].strip()
+                            conversation_service.update_user_profile(db, conversation, user_name=user_name)
+                            conversation.user_name = user_name
+                    except (json.JSONDecodeError, AttributeError):
+                        logger.warning("Falha ao extrair nome do usuário")
 
-            profile_stage = "collecting_name" if user_name is None else (
-                "collecting_email" if user_email is None else "complete"
-            )
+                profile_stage = "collecting_name" if user_name is None else (
+                    "collecting_email" if user_email is None else "complete"
+                )
 
         elif user_email is None:
             if _bot_asked_for_email(last_bot_content):
@@ -161,7 +165,7 @@ def profile_response_node(state: ConversationState) -> dict:
 
 def route_profile(state: ConversationState) -> str:
     """Decide o próximo nó com base no estágio de coleta de perfil."""
-    if state["profile_stage"] in ("collecting_name", "collecting_email"):
+    if state["profile_stage"] in ("greeting", "collecting_name", "collecting_email"):
         return "profile_response"
     return "classify"
 
