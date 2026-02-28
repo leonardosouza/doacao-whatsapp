@@ -388,23 +388,6 @@ tests/
 | config, main | 100% |
 | models (conversation, message, ong) | 100% |
 
-## Equipe
-
-Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Faculdade Impacta](https://www.impacta.edu.br/).
-
-| Nome | E-mail |
-|------|--------|
-| Diego de Jesus | diego.jesus@aluno.impacta.edu.br |
-| Janailson Rocha de Sousa | janailson.sousa@aluno.impacta.edu.br |
-| Jeferson Borges | jeferson.borges@aluno.impacta.edu.br |
-| João Victor Ribeiro Borges | joao.rborges@aluno.impacta.edu.br |
-| Kaio Candido de Oliveira | kaio.candido@aluno.impacta.edu.br |
-| Leonardo Souza | leonardo.aparecido@aluno.impacta.edu.br |
-| Lucas Cassidori | lucas.cassidori@aluno.impacta.edu.br |
-| Ricardo Barreto Gusi | ricardo.gusi@aluno.impacta.edu.br |
-| Ronildo Mendes Viana | ronildo.viana@aluno.impacta.edu.br |
-| Vinicius Alcarde Goia | vinicius.goia@aluno.impacta.edu.br |
-
 ## Testes de Carga
 
 Scripts e relatórios de stress test mantidos no repositório [doazap-stress-test](https://github.com/leonardosouza/doazap-stress-test) (Locust).
@@ -423,6 +406,23 @@ Scripts e relatórios de stress test mantidos no repositório [doazap-stress-tes
 ## Changelog
 
 Todas as versões e mudanças estão documentadas em [CHANGELOG.md](CHANGELOG.md).
+
+## Equipe
+
+Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Faculdade Impacta](https://www.impacta.edu.br/).
+
+| Nome | E-mail |
+|------|--------|
+| Diego de Jesus | diego.jesus@aluno.impacta.edu.br |
+| Janailson Rocha de Sousa | janailson.sousa@aluno.impacta.edu.br |
+| Jeferson Borges | jeferson.borges@aluno.impacta.edu.br |
+| João Victor Ribeiro Borges | joao.rborges@aluno.impacta.edu.br |
+| Kaio Candido de Oliveira | kaio.candido@aluno.impacta.edu.br |
+| Leonardo Souza | leonardo.aparecido@aluno.impacta.edu.br |
+| Lucas Cassidori | lucas.cassidori@aluno.impacta.edu.br |
+| Ricardo Barreto Gusi | ricardo.gusi@aluno.impacta.edu.br |
+| Ronildo Mendes Viana | ronildo.viana@aluno.impacta.edu.br |
+| Vinicius Alcarde Goia | vinicius.goia@aluno.impacta.edu.br |
 
 ## Licença
 
