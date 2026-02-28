@@ -44,7 +44,11 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
     conversation_history = conversation_service.format_history(history_messages)
 
     # Processa mensagem pelo agente LangGraph
-    result = await process_message(message_text, db, conversation_history=conversation_history)
+    result = await process_message(
+        message_text, db,
+        conversation_history=conversation_history,
+        conversation=conversation,
+    )
     response_text = result["response"]
 
     conversation_service.save_message(
