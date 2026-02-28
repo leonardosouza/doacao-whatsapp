@@ -5,6 +5,25 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.6] - 2026-02-28
+
+### Security
+- **RLS habilitado nas tabelas do Supabase** (alerta de segurança Supabase resolvido)
+  - Auditoria revelou que o role `anon` tinha todos os privilégios (SELECT, INSERT, UPDATE,
+    DELETE, TRUNCATE) em `ongs`, `conversations` e `messages` sem nenhuma política RLS
+  - `conversations` e `messages` contêm dados sensíveis (telefones, conteúdo de conversas):
+    acesso via PostgREST bloqueado para `anon` e `authenticated` (sem política explícita)
+  - `ongs` é dado público: criada política `anon_select_ongs` permitindo SELECT apenas
+    (INSERT/UPDATE/DELETE bloqueados para anon; consistent com o endpoint público GET /api/ongs)
+  - O app FastAPI conecta como `postgres` (superusuário) e **não é afetado** — superusuários
+    contornam RLS por padrão no PostgreSQL
+
+### Infrastructure
+- Migration 012: `ENABLE ROW LEVEL SECURITY` em `ongs`, `conversations`, `messages`
+  + `CREATE POLICY anon_select_ongs` em `ongs`
+
+---
+
 ## [1.5.5] - 2026-02-28
 
 ### Security
