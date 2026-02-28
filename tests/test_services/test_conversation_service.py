@@ -138,6 +138,74 @@ class TestFormatHistory:
         assert result == "Usuário: Quero doar"
 
 
+class TestCountRecentInbound:
+    def test_returns_zero_when_none(self, db_session, sample_conversation):
+        count = conversation_service.count_recent_inbound(db_session, sample_conversation.phone_number)
+        assert count == 0
+
+    def test_counts_inbound_messages(self, db_session, sample_conversation):
+        conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg 1")
+        conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg 2")
+        count = conversation_service.count_recent_inbound(db_session, sample_conversation.phone_number)
+        assert count == 2
+
+    def test_does_not_count_outbound(self, db_session, sample_conversation):
+        conversation_service.save_message(db_session, sample_conversation, "inbound", "Msg 1")
+        conversation_service.save_message(db_session, sample_conversation, "outbound", "Resp 1")
+        count = conversation_service.count_recent_inbound(db_session, sample_conversation.phone_number)
+        assert count == 1
+
+    def test_respects_window(self, db_session, sample_conversation):
+        from datetime import UTC, datetime, timedelta
+        from app.models.message import Message as MsgModel
+        # Insere mensagem com timestamp fora da janela
+        old_msg = MsgModel(
+            conversation_id=sample_conversation.id,
+            direction="inbound",
+            content="Antiga",
+        )
+        db_session.add(old_msg)
+        db_session.commit()
+        # Força created_at para 2 minutos atrás
+        db_session.query(MsgModel).filter(MsgModel.id == old_msg.id).update(
+            {MsgModel.created_at: datetime.now(UTC) - timedelta(seconds=120)}
+        )
+        db_session.commit()
+        # Janela de 60s: mensagem de 2min atrás não deve contar
+        count = conversation_service.count_recent_inbound(
+            db_session, sample_conversation.phone_number, window_seconds=60
+        )
+        assert count == 0
+
+
+class TestHasConsecutiveOutOfScope:
+    def test_returns_true_when_all_oos(self, db_session, sample_conversation):
+        for _ in range(3):
+            conversation_service.save_message(
+                db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
+            )
+        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is True
+
+    def test_returns_false_when_mixed(self, db_session, sample_conversation):
+        conversation_service.save_message(
+            db_session, sample_conversation, "outbound", "Oi", intent="Quero Doar"
+        )
+        conversation_service.save_message(
+            db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
+        )
+        conversation_service.save_message(
+            db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
+        )
+        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is False
+
+    def test_returns_false_when_below_threshold(self, db_session, sample_conversation):
+        for _ in range(2):
+            conversation_service.save_message(
+                db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
+            )
+        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is False
+
+
 class TestUpdateUserProfile:
     def test_sets_name(self, db_session, sample_conversation):
         result = conversation_service.update_user_profile(

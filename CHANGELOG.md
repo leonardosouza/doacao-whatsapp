@@ -5,6 +5,36 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.5] - 2026-02-28
+
+### Security
+- **Rate limiting persistente via banco de dados**: substitui a janela deslizante em memória
+  (`_rate_store`) por uma query na tabela `messages` — limite de **5 msgs/60s** por telefone.
+  A contagem sobrevive a reinicializações do processo (deploys no Render), eliminando a falha
+  observada na Fase 2 do ataque CPFL onde o processo reiniciava zerando o contador in-memory
+- **Circuit breaker por "Fora do Escopo" consecutivo**: após 3 respostas outbound consecutivas
+  com `intent = "Fora do Escopo"` dentro de 1 minuto para o mesmo número, a próxima mensagem
+  é descartada silenciosamente sem chamar o agente e sem enviar resposta — interrompe loops
+  onde um bot externo persiste após múltiplas recusas do guard-rail do LLM
+- **Expansão das assinaturas de bot (Fase 2)**: 7 novos padrões adicionados ao `_BOT_SIGNATURES`
+  cobrindo mensagens observadas na Fase 2 do ataque: "vou verificar se há alguma mensagem",
+  "já encontrei seu cadastro", "desculpe, não entendi isso", "qual é o seu nível de satisfação",
+  "link de pagamento gerado", "queremos saber sua opinião", "número de protocolo"
+
+### Added
+- `conversation_service.count_recent_inbound()` — conta inbounds recentes via DB para rate limiting
+- `conversation_service.has_consecutive_out_of_scope()` — verifica circuit breaker OOS via DB
+- 10 novos testes (4 conversation_service, 3 webhook rate limit/OOS, 3 bot signatures Fase 2) — total: 162 testes
+
+### Removed
+- Lógica in-memory `_rate_store`, `_is_rate_limited()`, imports `time` e `defaultdict` do webhook handler
+
+### Documentation
+- README atualizado: seção "Guard-rails e segurança" descreve as 4 camadas de proteção
+- Contagem de testes atualizada: 152 → 162
+
+---
+
 ## [1.5.4] - 2026-02-28
 
 ### Security

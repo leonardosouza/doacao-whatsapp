@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -89,6 +90,48 @@ def update_user_profile(
         f"name={conversation.user_name}"
     )
     return conversation
+
+
+def count_recent_inbound(
+    db: Session,
+    phone: str,
+    window_seconds: int = 60,
+) -> int:
+    """Conta inbounds recentes para rate limiting persistente entre restarts."""
+    cutoff = datetime.now(UTC) - timedelta(seconds=window_seconds)
+    return (
+        db.query(func.count(Message.id))
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .filter(
+            Conversation.phone_number == phone,
+            Message.direction == "inbound",
+            Message.created_at > cutoff,
+        )
+        .scalar() or 0
+    )
+
+
+def has_consecutive_out_of_scope(
+    db: Session,
+    phone: str,
+    threshold: int = 3,
+    window_minutes: int = 1,
+) -> bool:
+    """Retorna True se as últimas `threshold` respostas foram todas 'Fora do Escopo'."""
+    cutoff = datetime.now(UTC) - timedelta(minutes=window_minutes)
+    recent = (
+        db.query(Message)
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .filter(
+            Conversation.phone_number == phone,
+            Message.direction == "outbound",
+            Message.created_at > cutoff,
+        )
+        .order_by(Message.created_at.desc())
+        .limit(threshold)
+        .all()
+    )
+    return len(recent) >= threshold and all(m.intent == "Fora do Escopo" for m in recent)
 
 
 def format_history(messages: list[Message]) -> str:

@@ -1,6 +1,4 @@
 import logging
-import time
-from collections import defaultdict
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -16,27 +14,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ---------------------------------------------------------------------------
-# Camada 1: Rate limiting por telefone (janela deslizante em memória)
+# Camada 1: Rate limiting persistente via banco de dados (5 msgs/60s)
 # ---------------------------------------------------------------------------
-_rate_store: dict[str, list[float]] = defaultdict(list)
-_RATE_LIMIT = 12   # máximo de mensagens por janela
+_RATE_LIMIT = 5    # máximo de mensagens por janela
 _RATE_WINDOW = 60  # janela em segundos
-
-
-def _is_rate_limited(phone: str) -> bool:
-    """Retorna True se o telefone excedeu o limite de mensagens na janela atual."""
-    now = time.time()
-    cutoff = now - _RATE_WINDOW
-    timestamps = [t for t in _rate_store[phone] if t > cutoff]
-    timestamps.append(now)
-    _rate_store[phone] = timestamps
-    return len(timestamps) > _RATE_LIMIT
-
 
 # ---------------------------------------------------------------------------
 # Camada 2: Detecção de bots por auto-identificação na mensagem
 # ---------------------------------------------------------------------------
 _BOT_SIGNATURES = [
+    # Fase 1 (v1.5.4)
     "sou a analista virtual",
     "sou um assistente virtual",
     "sou um atendente virtual",
@@ -44,6 +31,14 @@ _BOT_SIGNATURES = [
     "atendente virtual da ",
     "posso te ajudar com diversos assuntos",
     "informe o seu cpf ou cnpj",
+    # Fase 2 (novos padrões CPFL / CRM / NPS)
+    "vou verificar se há alguma mensagem",
+    "desculpe, não entendi isso",
+    "qual é o seu nível de satisfação",
+    "link de pagamento gerado",
+    "queremos saber sua opinião",
+    "número de protocolo",
+    "já encontrei seu cadastro",
 ]
 
 
@@ -68,9 +63,9 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         )
         return {"status": "unsupported_media", "reason": media_type}
 
-    # Camada 1: Rate limiting — sem resposta ao remetente (silêncio quebra loops de bot)
-    if _is_rate_limited(payload.phone):
-        logger.warning(f"Rate limit excedido para {payload.phone} — mensagem ignorada")
+    # Camada 1: Rate limiting persistente via DB — sem resposta (silêncio quebra loops de bot)
+    if conversation_service.count_recent_inbound(db, payload.phone, _RATE_WINDOW) >= _RATE_LIMIT:
+        logger.warning(f"Rate limit DB excedido para {payload.phone} — mensagem ignorada")
         return {"status": "ignored", "reason": "rate_limited"}
 
     message_text = payload.get_message_text()
@@ -85,6 +80,11 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
     if conversation_service.is_duplicate_message(db, payload.messageId):
         logger.warning(f"Webhook duplicado ignorado: messageId={payload.messageId}")
         return {"status": "ignored", "reason": "duplicate"}
+
+    # Camada 3: Circuit breaker OOS — silencia após 3 respostas consecutivas fora do escopo
+    if conversation_service.has_consecutive_out_of_scope(db, payload.phone):
+        logger.warning(f"OOS consecutivo detectado para {payload.phone} — silêncio ativado")
+        return {"status": "ignored", "reason": "consecutive_oos"}
 
     logger.info(f"Mensagem recebida de {payload.phone}: {message_text}")
 

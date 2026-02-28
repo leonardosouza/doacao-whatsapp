@@ -200,42 +200,72 @@ class TestWebhook:
 
 
 class TestRateLimiting:
-    """Testes para a Camada 1: rate limiting por telefone."""
+    """Testes para a Camada 1: rate limiting persistente via banco de dados."""
 
-    def test_rate_limit_blocks_after_12_messages(self, client):
-        """13ª mensagem do mesmo telefone na janela de 60s deve ser bloqueada."""
-        phone = "5519111111001"
-        with (
-            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
-            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+    def test_rate_limit_blocks_when_count_reaches_limit(self, client):
+        """Quando count_recent_inbound retorna >= 5, a mensagem deve ser bloqueada."""
+        with patch(
+            "app.api.routes.webhook.conversation_service.count_recent_inbound",
+            return_value=5,
         ):
-            mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
-            mock_send.return_value = {}
-
-            for i in range(12):
-                resp = client.post("/api/webhook", json=_make_payload(phone=phone, messageId=f"rl-{i}"))
-                assert resp.json().get("reason") != "rate_limited", f"Request {i + 1} bloqueada prematuramente"
-
-            # 13ª deve ser bloqueada
-            resp = client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rl-12"))
+            resp = client.post("/api/webhook", json=_make_payload(phone="5519111111001", messageId="rl-blocked"))
             assert resp.json()["status"] == "ignored"
             assert resp.json()["reason"] == "rate_limited"
 
-    def test_rate_limit_different_phones_are_independent(self, client):
-        """Rate limit de um telefone não deve afetar outros telefones."""
-        phone_a, phone_b = "5519111111002", "5519111111003"
+    def test_rate_limit_allows_when_below_limit(self, client):
+        """Quando count_recent_inbound retorna < 5, a mensagem deve ser processada."""
         with (
+            patch("app.api.routes.webhook.conversation_service.count_recent_inbound", return_value=4),
             patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
             patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
         ):
             mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
             mock_send.return_value = {}
+            resp = client.post("/api/webhook", json=_make_payload(phone="5519111111004", messageId="rl-ok"))
+            assert resp.json().get("reason") != "rate_limited"
 
-            for i in range(12):
-                r_a = client.post("/api/webhook", json=_make_payload(phone=phone_a, messageId=f"ia-{i}"))
-                r_b = client.post("/api/webhook", json=_make_payload(phone=phone_b, messageId=f"ib-{i}"))
-                assert r_a.json().get("reason") != "rate_limited"
-                assert r_b.json().get("reason") != "rate_limited"
+
+class TestConsecutiveOOS:
+    """Testes para a Camada 3: circuit breaker por respostas OOS consecutivas."""
+
+    def test_consecutive_oos_silences_message(self, client):
+        """Quando has_consecutive_out_of_scope retorna True, agente não deve ser chamado."""
+        with (
+            patch(
+                "app.api.routes.webhook.conversation_service.count_recent_inbound",
+                return_value=0,
+            ),
+            patch(
+                "app.api.routes.webhook.conversation_service.has_consecutive_out_of_scope",
+                return_value=True,
+            ),
+            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
+            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+        ):
+            resp = client.post("/api/webhook", json=_make_payload(phone="5519222220001", messageId="oos-1"))
+            assert resp.json()["status"] == "ignored"
+            assert resp.json()["reason"] == "consecutive_oos"
+            mock_proc.assert_not_called()
+            mock_send.assert_not_called()
+
+    def test_no_oos_allows_message(self, client):
+        """Quando has_consecutive_out_of_scope retorna False, a mensagem deve ser processada."""
+        with (
+            patch(
+                "app.api.routes.webhook.conversation_service.count_recent_inbound",
+                return_value=0,
+            ),
+            patch(
+                "app.api.routes.webhook.conversation_service.has_consecutive_out_of_scope",
+                return_value=False,
+            ),
+            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
+            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+        ):
+            mock_proc.return_value = {"response": "Oi!", "intent": "Ambíguo", "sentiment": "Neutro"}
+            mock_send.return_value = {}
+            resp = client.post("/api/webhook", json=_make_payload(phone="5519222220002", messageId="oos-ok"))
+            assert resp.json()["status"] == "processed"
 
 
 class TestBotDetection:
@@ -262,6 +292,25 @@ class TestBotDetection:
         )
         mock_send.assert_not_called()
         mock_proc.assert_not_called()
+
+    def test_bot_detected_new_signatures_fase2(self, client):
+        """Assinaturas da Fase 2 (CPFL/CRM/NPS) devem ser detectadas como bot."""
+        new_signatures = [
+            "Vou verificar se há alguma mensagem para você!",
+            "Já encontrei seu cadastro, LEONARDO.",
+            "Desculpe, não entendi isso.",
+            "Qual é o seu nível de satisfação com o atendimento?",
+            "Link de pagamento gerado: https://pay.example.com/abc123",
+            "Queremos saber sua opinião sobre o atendimento.",
+            "número de protocolo 123456",
+        ]
+        for text in new_signatures:
+            resp = client.post(
+                "/api/webhook",
+                json=_make_payload(phone="5519888889999", text={"message": text}),
+            )
+            assert resp.json()["status"] == "ignored", f"Assinatura não detectada: {text!r}"
+            assert resp.json()["reason"] == "bot_detected", f"Razão incorreta para: {text!r}"
 
     @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
     @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)

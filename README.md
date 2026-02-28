@@ -42,10 +42,11 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
 3. FastAPI recebe o payload e aplica filtros sequenciais:
    - Mensagens `fromMe` ou de grupo → ignoradas silenciosamente
    - **Mídia** (áudio, vídeo, imagem, documento, sticker) → envia aviso ao usuário e encerra
-   - **Rate limit** excedido (> 12 msgs/min do mesmo número) → ignorado silenciosamente
+   - **Rate limit** excedido (≥ 5 msgs/60s do mesmo número, via banco de dados) → ignorado silenciosamente
    - Sem texto → ignorado silenciosamente
    - **Bot detectado** por auto-identificação na mensagem → ignorado silenciosamente
    - `messageId` já processado → descartado (deduplicação de webhook duplicado pelo Z-API)
+   - **Circuit breaker OOS** ativado (3 respostas consecutivas "Fora do Escopo" em 1 min) → ignorado silenciosamente
 4. Busca/cria sessão de conversa no PostgreSQL
 5. Salva a mensagem inbound com o `messageId` do Z-API (garante idempotência)
 6. Recupera histórico das últimas mensagens da conversa (memória conversacional)
@@ -74,13 +75,15 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
 
 ### Guard-rails e segurança
 
-O sistema possui três camadas de proteção independentes:
+O sistema possui quatro camadas de proteção independentes no webhook, mais uma camada no agente:
 
-**Camada 1 — Rate limiting (webhook):** Máximo de 12 mensagens por minuto por número de telefone, usando janela deslizante em memória. Excedido o limite, a mensagem é descartada silenciosamente (sem resposta), interrompendo loops de bots automatizados.
+**Camada 1 — Rate limiting persistente via banco de dados (webhook):** Máximo de 5 mensagens por 60 segundos por número de telefone, contabilizadas diretamente na tabela `messages`. Por ser baseado no banco de dados, o limite sobrevive a reinicializações do processo (ex.: novos deploys no Render). Excedido o limite, a mensagem é descartada silenciosamente, sem resposta.
 
-**Camada 2 — Detecção de bot por auto-identificação (webhook):** Mensagens que contêm frases típicas de assistentes virtuais ("sou a analista virtual", "sou um assistente virtual", "atendente virtual da…") são descartadas silenciosamente antes de qualquer processamento pelo agente.
+**Camada 2 — Detecção de bot por auto-identificação (webhook):** Mensagens que contêm frases típicas de assistentes virtuais ou CRMs automatizados são descartadas silenciosamente antes de qualquer processamento pelo agente. Padrões detectados: "sou a analista virtual", "sou um assistente virtual", "atendente virtual da…", "link de pagamento gerado", "qual é o seu nível de satisfação", "número de protocolo", entre outros.
 
-**Camada 3 — Limite de tentativas de coleta de nome (agente):** O estágio de coleta do nome do usuário tem no máximo 3 tentativas. Após esse limite, o bot prossegue o atendimento normalmente sem nome, evitando o loop infinito caso um bot externo não consiga fornecer uma resposta válida.
+**Camada 3 — Circuit breaker por "Fora do Escopo" consecutivo (webhook):** Se as últimas 3 respostas outbound para um número forem todas classificadas como "Fora do Escopo" dentro de 1 minuto, a próxima mensagem desse número é silenciada sem chamar o agente e sem enviar resposta. Isso interrompe loops onde um bot externo continua respondendo após múltiplas recusas.
+
+**Camada 4 — Limite de tentativas de coleta de nome (agente):** O estágio de coleta do nome do usuário tem no máximo 3 tentativas. Após esse limite, o bot prossegue o atendimento normalmente sem nome, evitando o loop infinito caso um bot externo não consiga fornecer uma resposta válida.
 
 **Guard-rails do agente (LLM):** Mensagens classificadas como "Fora do Escopo" recebem uma resposta gentil de redirecionamento, sem acesso ao banco de ONGs.
 
@@ -159,7 +162,7 @@ doacao-whatsapp/
 │   ├── ONGS.json                # Dados originais (19 ONGs)
 │   ├── ONGS_v2.csv              # Dados ampliados (52 ONGs)
 │   └── seed_ongs_v2.sql         # Seed aplicado em 2026-02-28
-├── tests/                         # 144 testes automatizados (99% cobertura)
+├── tests/                         # 162 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -356,7 +359,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **152 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **162 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 
