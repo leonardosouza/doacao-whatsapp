@@ -5,6 +5,35 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.9] - 2026-02-28
+
+### Security
+- **V1 — Mascaramento de PII nos logs** (`webhook.py`): números de telefone exibidos como `****XXXX`
+  e conteúdo de mensagens truncado a 30 chars em todos os eventos de log. Conformidade com LGPD:
+  dados pessoais não são transmitidos ao New Relic ou qualquer sistema externo de observabilidade.
+- **V2 — Sanitização de erros Z-API** (`zapi_service.py`): função `_safe_err()` substitui o token
+  Z-API por `***` em mensagens de erro antes de qualquer chamada a `logger.*`, evitando vazamento
+  de credencial em stack traces.
+- **V3 — Timeout consistente nas requisições HTTP** (`zapi_service.py`): constante `_ZAPI_TIMEOUT = 10s`
+  aplicada tanto no `GET /status` quanto no `POST /send-text` (antes sem timeout definido), evitando
+  que requisições lentas travem o event loop.
+- **V4 — Validação de origem do webhook** (`webhook.py`): nova Camada 0 que rejeita payloads cujo
+  `instanceId` não corresponde ao `ZAPI_INSTANCE_ID` configurado, impedindo injeção de mensagens
+  por terceiros que conheçam o endpoint.
+- **V5 — Escape de metacaracteres LIKE** (`ong_service.py`): função `_escape_like()` escapa `%`,
+  `_` e `\` nos filtros `category` e `city` de `GET /api/ongs`, eliminando bypass lógico por input
+  de wildcard.
+- **V6 — CORS restrito** (`main.py`): `CORSMiddleware` com `allow_origins` limitado aos domínios
+  Render da plataforma (`doacao-whatsapp` e `doazap-dashboard`).
+
+### Added
+- `docs/SECURITY.md`: documento centralizado com todas as medidas de segurança, camadas de
+  proteção do webhook, conformidade LGPD, RLS do Supabase e política de reporte de vulnerabilidades.
+- `docs/ARCHITECTURE.md` atualizado: Camada 0 (validação de `instanceId`) documentada no fluxo
+  de mensagens e na seção de guard-rails.
+
+---
+
 ## [1.5.8] - 2026-02-28
 
 ### Added

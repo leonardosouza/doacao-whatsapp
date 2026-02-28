@@ -26,6 +26,7 @@
 1. Usuário envia mensagem no WhatsApp
 2. Z-API recebe e dispara webhook `POST /api/webhook`
 3. FastAPI recebe o payload e aplica filtros sequenciais:
+   - **`instanceId` inválido** → rejeitado silenciosamente (valida que veio da instância Z-API configurada)
    - Mensagens `fromMe` ou de grupo → ignoradas silenciosamente
    - **Mídia** (áudio, vídeo, imagem, documento, sticker) → envia aviso ao usuário e encerra
    - **Rate limit** excedido (≥ 5 msgs/60s do mesmo número, via banco de dados) → ignorado silenciosamente
@@ -76,7 +77,9 @@ python scripts/generate_graph.py
 
 ## Guard-Rails e Segurança
 
-O sistema possui quatro camadas de proteção independentes no webhook, mais uma camada no agente.
+O sistema possui cinco camadas de proteção independentes no webhook, mais uma camada no agente. Consulte [SECURITY.md](SECURITY.md) para o detalhamento completo das medidas de segurança.
+
+**Camada 0 — Validação de origem do webhook (v1.5.9):** Cada payload é validado contra o `instanceId` da instância Z-API configurada. Requisições de origens desconhecidas são rejeitadas silenciosamente antes de qualquer processamento.
 
 **Camada 1 — Rate limiting persistente via banco de dados (webhook):** Máximo de 5 mensagens por 60 segundos por número de telefone, contabilizadas diretamente na tabela `messages`. Por ser baseado no banco de dados, o limite sobrevive a reinicializações do processo (ex.: novos deploys no Render). Excedido o limite, a mensagem é descartada silenciosamente, sem resposta.
 

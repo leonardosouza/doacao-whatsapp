@@ -104,7 +104,8 @@ doacao-whatsapp/
 │   ├── CONFIGURATION.md         # Setup, variáveis de ambiente e RLS
 │   ├── DEPLOY.md                # Deploy no Render e New Relic
 │   ├── TESTING.md               # Testes unitários e de carga
-│   └── OBSERVABILITY.md         # Logs, psql timezone e views diagnósticas
+│   ├── OBSERVABILITY.md         # Logs, psql timezone e views diagnósticas
+│   └── SECURITY.md              # Medidas de segurança e proteção de dados (LGPD)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -136,6 +137,7 @@ Para instruções detalhadas de configuração e variáveis de ambiente, consult
 | [DEPLOY.md](docs/DEPLOY.md) | Deploy no Render, monitoramento New Relic e synthetics |
 | [TESTING.md](docs/TESTING.md) | Testes unitários, cobertura e testes de carga |
 | [OBSERVABILITY.md](docs/OBSERVABILITY.md) | Logs, psql timezone e views diagnósticas |
+| [SECURITY.md](docs/SECURITY.md) | Camadas de segurança, LGPD e proteção de credenciais |
 | [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
 
 ## Equipe
