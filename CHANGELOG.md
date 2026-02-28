@@ -5,6 +5,22 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.7] - 2026-02-28
+
+### Security
+- **RLS habilitado em alembic_version** (segundo alerta de segurança Supabase resolvido)
+  - O role `anon` tinha todos os privilégios na tabela `alembic_version` sem RLS, permitindo
+    sobrescrever o identificador de versão via PostgREST — o que poderia desorientar futuras
+    migrations e comprometer a integridade operacional do banco
+  - RLS habilitado sem políticas explícitas → `anon`/`authenticated` completamente bloqueados
+  - O Alembic (postgres superusuário) contorna RLS automaticamente — nenhum impacto operacional
+
+### Infrastructure
+- Migration 013: `ENABLE ROW LEVEL SECURITY` em `alembic_version`
+- Todas as tabelas do schema public agora têm RLS habilitado (`rowsecurity = t`)
+
+---
+
 ## [1.5.6] - 2026-02-28
 
 ### Security
