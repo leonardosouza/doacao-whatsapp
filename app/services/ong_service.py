@@ -22,6 +22,11 @@ def get_ong(db: Session, ong_id: uuid.UUID) -> Ong | None:
     return db.query(Ong).filter(Ong.id == ong_id).first()
 
 
+def _escape_like(value: str) -> str:
+    """Escapa metacaracteres LIKE (%, _) para evitar bypass lógico via input do usuário."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def list_ongs(
     db: Session,
     category: str | None = None,
@@ -36,11 +41,11 @@ def list_ongs(
     if active_only:
         query = query.filter(Ong.is_active.is_(True))
     if category:
-        query = query.filter(Ong.category.ilike(f"%{category}%"))
+        query = query.filter(Ong.category.ilike(f"%{_escape_like(category)}%"))
     if state:
         query = query.filter(Ong.state == state.upper())
     if city:
-        query = query.filter(Ong.city.ilike(f"%{city}%"))
+        query = query.filter(Ong.city.ilike(f"%{_escape_like(city)}%"))
 
     return query.order_by(Ong.name).offset(skip).limit(limit).all()
 

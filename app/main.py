@@ -3,6 +3,7 @@ import zoneinfo
 from datetime import datetime
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import health, ong, webhook
 from app.config import APP_VERSION, settings
@@ -30,6 +31,16 @@ app = FastAPI(
     version=APP_VERSION,
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://doacao-whatsapp.onrender.com",
+        "https://doazap-dashboard.onrender.com",
+    ],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])

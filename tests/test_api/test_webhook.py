@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 def _make_payload(**overrides):
     base = {
         "phone": "5511999990000",
-        "instanceId": "inst-1",
+        "instanceId": "test-instance-id",  # deve bater com ZAPI_INSTANCE_ID do conftest
         "messageId": "msg-1",
         "fromMe": False,
         "isGroup": False,
