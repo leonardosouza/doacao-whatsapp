@@ -15,7 +15,6 @@ class OngCreate(BaseModel):
     email: str | None = None
     pix_key: str | None = None
     bank_info: str | None = None
-    donation_url: str | None = None
 
 
 class OngUpdate(BaseModel):
@@ -29,7 +28,6 @@ class OngUpdate(BaseModel):
     email: str | None = None
     pix_key: str | None = None
     bank_info: str | None = None
-    donation_url: str | None = None
     is_active: bool | None = None
 
 
@@ -45,7 +43,6 @@ class OngResponse(BaseModel):
     email: str | None
     pix_key: str | None
     bank_info: str | None
-    donation_url: str | None
     is_active: bool
     created_at: datetime
     updated_at: datetime

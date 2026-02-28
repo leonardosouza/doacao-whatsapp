@@ -52,7 +52,6 @@ class TestFormatOng:
             "email": None,
             "pix_key": None,
             "bank_info": None,
-            "donation_url": None,
         }
         defaults.update(kwargs)
         mock = MagicMock(spec=Ong)
@@ -67,7 +66,6 @@ class TestFormatOng:
             email="a@b.com",
             pix_key="pix@ong.org",
             bank_info="Banco X Ag 001",
-            donation_url="https://doe.org",
         )
         result = _format_ong(1, ong)
         assert "1. ONG Teste (Saúde)" in result
@@ -76,7 +74,6 @@ class TestFormatOng:
         assert "Email: a@b.com" in result
         assert "PIX: pix@ong.org" in result
         assert "Banco: Banco X Ag 001" in result
-        assert "Doação: https://doe.org" in result
 
     def test_minimal_data(self):
         ong = self._make_ong()
@@ -159,12 +156,12 @@ class TestEnrichNode:
         enrich = make_enrich_node(db_session)
         state = {"user_message": "", "conversation_history": "", "intent": "Quero Doar", "sentiment": "", "rag_context": [], "ong_context": "", "response": ""}
         result = enrich(state)
-        # Only ONGs with pix_key, bank_info, or donation_url should appear
-        assert "ONG Fome A" in result["ong_context"]  # has pix_key
-        assert "ONG Saúde B" in result["ong_context"]  # has bank_info
-        assert "ONG Crianças E" in result["ong_context"]  # has donation_url
-        assert "ONG Animais C" not in result["ong_context"]  # no payment info
-        assert "ONG Inativa F" not in result["ong_context"]  # inactive
+        # Only ONGs with pix_key or bank_info should appear
+        assert "ONG Fome A" in result["ong_context"]      # has pix_key
+        assert "ONG Saúde B" in result["ong_context"]     # has bank_info
+        assert "ONG Crianças E" not in result["ong_context"]  # no payment info
+        assert "ONG Animais C" not in result["ong_context"]   # no payment info
+        assert "ONG Inativa F" not in result["ong_context"]   # inactive
 
     def test_busco_ajuda_filters_social(self, db_session, multiple_ongs_in_db):
         enrich = make_enrich_node(db_session)

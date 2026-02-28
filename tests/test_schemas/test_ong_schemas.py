@@ -31,7 +31,6 @@ class TestOngCreate:
             email="a@b.com",
             pix_key="pix@ong.org",
             bank_info="Banco X",
-            donation_url="https://doe.org",
         )
         dump = data.model_dump()
         assert dump["subcategory"] == "Infantil"
@@ -63,7 +62,6 @@ class TestOngResponse:
         mock_ong.email = None
         mock_ong.pix_key = None
         mock_ong.bank_info = None
-        mock_ong.donation_url = None
         mock_ong.is_active = True
         mock_ong.created_at = datetime.now(timezone.utc)
         mock_ong.updated_at = datetime.now(timezone.utc)

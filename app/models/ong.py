@@ -24,7 +24,6 @@ class Ong(Base):
     email: Mapped[str | None] = mapped_column(String(200), nullable=True)
     pix_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
     bank_info: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    donation_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -78,8 +78,6 @@ def _format_ong(index: int, ong: Ong) -> str:
         lines.append(f"   PIX: {ong.pix_key}")
     if ong.bank_info:
         lines.append(f"   Banco: {ong.bank_info}")
-    if ong.donation_url:
-        lines.append(f"   Doação: {ong.donation_url}")
 
     return "\n".join(lines)
 
@@ -212,7 +210,6 @@ def make_enrich_node(db: Session):
             query = query.filter(
                 (Ong.pix_key.isnot(None))
                 | (Ong.bank_info.isnot(None))
-                | (Ong.donation_url.isnot(None))
             )
         elif intent == "Busco Ajuda/Beneficiário":
             query = query.filter(

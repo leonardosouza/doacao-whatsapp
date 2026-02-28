@@ -5,6 +5,28 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.0] - 2026-02-28
+
+### Added
+- **52 ONGs parceiras**: expansão da base de 19 para 52 ONGs via seed do `ONGS_v2.csv`,
+  cobrindo novas categorias (LGBTQIA+, Mulheres, Inclusão Produtiva, Cultura,
+  Pessoas com Deficiência) e novos estados (AM, BA, CE, DF, MS, PA, PB, PR, RS, RN, MG, SC)
+- `data/seed_ongs_v2.sql`: seed com 33 novas ONGs (duplicatas já existentes excluídas)
+
+### Removed
+- Campo `donation_url` removido da tabela `ongs`, model SQLAlchemy, schemas Pydantic
+  e lógica do agente
+
+### Changed
+- Query de filtragem para intent "Quero Doar" simplificada: usa apenas `pix_key` e `bank_info`
+- `_format_ong`: linha "Doação: ..." removida da formatação exibida ao usuário
+- Testes atualizados para refletir a remoção de `donation_url` (140 testes, 99% cobertura)
+
+### Infrastructure
+- Migration 007: `DROP COLUMN donation_url FROM ongs`
+
+---
+
 ## [1.4.1] - 2026-02-28
 
 ### Added

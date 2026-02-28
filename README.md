@@ -131,10 +131,12 @@ doacao-whatsapp/
 │   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations (001 → 005)
+│   └── versions/                # Migrations (001 → 007)
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
-│   └── ONGS.json                # Dados das 19 ONGs parceiras
+│   ├── ONGS.json                # Dados originais (19 ONGs)
+│   ├── ONGS_v2.csv              # Dados ampliados (52 ONGs)
+│   └── seed_ongs_v2.sql         # Seed aplicado em 2026-02-28
 ├── tests/                         # 138 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim

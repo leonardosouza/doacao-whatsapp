@@ -119,7 +119,7 @@ def multiple_ongs_in_db(db_session):
         {"name": "ONG Saúde B", "category": "Saúde", "city": "São Paulo", "state": "SP", "bank_info": "Banco 001 Ag 1234"},
         {"name": "ONG Animais C", "category": "Animais", "city": "Curitiba", "state": "PR"},
         {"name": "ONG Assistência D", "category": "Assistência Social", "city": "São Paulo", "state": "SP"},
-        {"name": "ONG Crianças E", "category": "Crianças", "city": "Belo Horizonte", "state": "MG", "donation_url": "https://doe.org"},
+        {"name": "ONG Crianças E", "category": "Crianças", "city": "Belo Horizonte", "state": "MG"},
         {"name": "ONG Inativa F", "category": "Saúde", "city": "Salvador", "state": "BA", "is_active": False},
     ]
     ongs = []
