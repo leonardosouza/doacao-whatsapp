@@ -5,6 +5,23 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.4.1] - 2026-02-28
+
+### Added
+- **Estágio `greeting`**: na primeira interação, o agente se apresenta como DoaZap
+  (missão, serviços e ONGs parceiras), reconhece brevemente a intenção do usuário e
+  já solicita o nome — tudo em um único turno, mantendo o onboarding em 2 rodadas
+- Detecção de primeira interação por `last_bot_content is None` no `make_profile_node`
+- `route_profile` estendido para rotear `"greeting"` → `profile_response_node`
+- 2 novos testes automatizados (140 testes no total)
+
+### Changed
+- `PROFILE_COLLECT_PROMPT` atualizado com instruções detalhadas para o estágio `greeting`
+- `profile_stage` agora segue a sequência: `greeting → collecting_name → collecting_email → complete`
+- Teste `test_collecting_name_on_first_interaction` atualizado para refletir novo comportamento
+
+---
+
 ## [1.4.0] - 2026-02-27
 
 ### Added

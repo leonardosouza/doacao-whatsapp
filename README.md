@@ -12,7 +12,7 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 - **Obter informações** — saber mais sobre as ONGs parceiras e seus projetos
 - **Parcerias corporativas** — conectar empresas à causa
 
-O atendimento é personalizado: nas primeiras interações, o bot coleta nome e email do usuário e os associa ao número de telefone. Uma vez registrados, não são solicitados novamente.
+O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (missão e serviços do DoaZap) e, em seguida, coleta nome e email do usuário em no máximo dois turnos. Uma vez registrados, os dados não são solicitados novamente.
 
 ## Arquitetura
 
@@ -43,9 +43,11 @@ O atendimento é personalizado: nas primeiras interações, o bot coleta nome e 
 4. Busca/cria sessão de conversa no PostgreSQL
 5. Recupera histórico das últimas mensagens da conversa (memória conversacional)
 6. Agente LangGraph processa a mensagem:
-   - **Profile** — verifica/coleta nome e email nas primeiras interações
-     - Se o perfil ainda não está completo → gera pergunta empática e encerra o fluxo
-     - Extração de nome via LLM (`EXTRACT_NAME_PROMPT`) e email via regex
+   - **Profile** — verifica/coleta nome e email nas primeiras interações:
+     - **1ª mensagem** (`greeting`): apresenta o DoaZap, reconhece brevemente a intenção e pede o nome
+     - **2ª mensagem** (`collecting_name`): pede o nome novamente se não foi fornecido
+     - **3ª mensagem** (`collecting_email`): agradece pelo nome e pede o email
+     - Extração de nome via LLM (`EXTRACT_NAME_PROMPT`) e email via regex; perfil persistido no banco
    - **Classify** — GPT-4.1-mini identifica intent e sentimento (com guard-rails)
    - **Retrieve** — FAISS busca interações similares na base RAG
    - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
@@ -129,7 +131,7 @@ doacao-whatsapp/
 │   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations (001 → 003)
+│   └── versions/                # Migrations (001 → 005)
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   └── ONGS.json                # Dados das 19 ONGs parceiras
@@ -330,7 +332,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **138 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **140 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 
