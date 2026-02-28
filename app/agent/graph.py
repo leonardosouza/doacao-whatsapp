@@ -60,7 +60,6 @@ async def process_message(
         "ong_context": "",
         "response": "",
         "user_name": conversation.user_name if conversation else None,
-        "user_email": conversation.user_email if conversation else None,
         "profile_stage": "complete",  # sobrescrito pelo profile_node
     }
 

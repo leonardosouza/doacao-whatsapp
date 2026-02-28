@@ -23,6 +23,5 @@ class Conversation(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     user_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    user_email: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     messages: Mapped[list["Message"]] = relationship(back_populates="conversation")

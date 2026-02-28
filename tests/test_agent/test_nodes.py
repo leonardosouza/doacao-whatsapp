@@ -3,9 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.agent.nodes import (
-    _bot_asked_for_email,
     _bot_asked_for_name,
-    _extract_email_from_text,
     _extract_json,
     _format_ong,
     classify_node,
@@ -299,27 +297,6 @@ class TestProfileHelpers:
     def test_bot_asked_for_name_false_unrelated(self):
         assert _bot_asked_for_name("Aqui estão as ONGs disponíveis.") is False
 
-    def test_bot_asked_for_email_true(self):
-        assert _bot_asked_for_email("Qual é o seu email?") is True
-
-    def test_bot_asked_for_email_true_hyphen(self):
-        assert _bot_asked_for_email("Informe seu e-mail para continuar.") is True
-
-    def test_bot_asked_for_email_false_on_none(self):
-        assert _bot_asked_for_email(None) is False
-
-    def test_bot_asked_for_email_false_unrelated(self):
-        assert _bot_asked_for_email("Obrigado pelo nome!") is False
-
-    def test_extract_email_finds_email(self):
-        assert _extract_email_from_text("meu email é joao@teste.com obrigado") == "joao@teste.com"
-
-    def test_extract_email_returns_none(self):
-        assert _extract_email_from_text("não tem endereço aqui") is None
-
-    def test_extract_email_handles_complex(self):
-        assert _extract_email_from_text("contate: joao.silva+tag@empresa.com.br!") == "joao.silva+tag@empresa.com.br"
-
 
 # ── make_profile_node ────────────────────────────────────────────────
 class TestMakeProfileNode:
@@ -332,15 +309,13 @@ class TestMakeProfileNode:
         "ong_context": "",
         "response": "",
         "user_name": None,
-        "user_email": None,
         "profile_stage": "",
     }
 
-    def _make_conv(self, user_name=None, user_email=None):
+    def _make_conv(self, user_name=None):
         conv = MagicMock()
         conv.id = 1
         conv.user_name = user_name
-        conv.user_email = user_email
         return conv
 
     def _make_db(self, last_bot_content=None):
@@ -361,14 +336,14 @@ class TestMakeProfileNode:
     @patch("app.agent.nodes.conversation_service")
     @patch("app.agent.nodes.llm")
     def test_extracts_name_after_asking(self, mock_llm, mock_service):
-        """Bot perguntou nome → LLM extrai com sucesso → stage = 'collecting_email'."""
+        """Bot perguntou nome → LLM extrai com sucesso → stage = 'complete'."""
         mock_llm.invoke.return_value = MagicMock(content='{"name": "João", "extracted": true}')
         conv = self._make_conv()
         db = self._make_db(last_bot_content="Olá! Qual é o seu nome?")
         node = make_profile_node(db, conv)
         result = node({**self._BASE_STATE, "user_message": "Me chamo João"})
         assert result["user_name"] == "João"
-        assert result["profile_stage"] == "collecting_email"
+        assert result["profile_stage"] == "complete"
         mock_service.update_user_profile.assert_called_once()
 
     @patch("app.agent.nodes.conversation_service")
@@ -383,31 +358,10 @@ class TestMakeProfileNode:
         assert result["profile_stage"] == "collecting_name"
         mock_service.update_user_profile.assert_not_called()
 
-    @patch("app.agent.nodes.conversation_service")
-    def test_collecting_email_when_name_set_and_email_provided(self, mock_service):
-        """Nome salvo, bot perguntou email, usuário forneceu → stage = 'complete'."""
-        conv = self._make_conv(user_name="João")
-        db = self._make_db(last_bot_content="Qual é o seu email?")
-        node = make_profile_node(db, conv)
-        result = node({**self._BASE_STATE, "user_message": "joao@email.com"})
-        assert result["user_email"] == "joao@email.com"
-        assert result["profile_stage"] == "complete"
-        mock_service.update_user_profile.assert_called_once()
-
-    @patch("app.agent.nodes.conversation_service")
-    def test_collecting_email_when_user_ignored(self, mock_service):
-        """Bot perguntou email, usuário não forneceu → stage = 'collecting_email'."""
-        conv = self._make_conv(user_name="João")
-        db = self._make_db(last_bot_content="Qual é o seu email?")
-        node = make_profile_node(db, conv)
-        result = node({**self._BASE_STATE, "user_message": "não quero informar"})
-        assert result["profile_stage"] == "collecting_email"
-        mock_service.update_user_profile.assert_not_called()
-
     @patch("app.agent.nodes.llm")
-    def test_complete_when_both_set(self, mock_llm):
-        """Ambos nome e email já salvos → stage = 'complete', LLM não é chamado."""
-        conv = self._make_conv(user_name="João", user_email="joao@email.com")
+    def test_complete_when_name_set(self, mock_llm):
+        """Nome já salvo → stage = 'complete', LLM não é chamado."""
+        conv = self._make_conv(user_name="João")
         db = self._make_db()
         node = make_profile_node(db, conv)
         result = node({**self._BASE_STATE})
@@ -438,33 +392,12 @@ class TestProfileResponseNode:
             "ong_context": "",
             "response": "",
             "user_name": None,
-            "user_email": None,
             "profile_stage": "collecting_name",
         }
         result = profile_response_node(state)
         assert result["response"] == "Qual é o seu nome? 😊"
         assert result["intent"] == "Ambíguo"
         assert result["sentiment"] == "Neutro"
-
-    @patch("app.agent.nodes.llm")
-    def test_includes_name_in_prompt_when_collecting_email(self, mock_llm):
-        mock_llm.invoke.return_value = MagicMock(content="Obrigado, João! Qual seu email?")
-        state = {
-            "user_message": "Oi",
-            "conversation_history": "",
-            "intent": "",
-            "sentiment": "",
-            "rag_context": [],
-            "ong_context": "",
-            "response": "",
-            "user_name": "João",
-            "user_email": None,
-            "profile_stage": "collecting_email",
-        }
-        profile_response_node(state)
-        call_arg = mock_llm.invoke.call_args[0][0]
-        assert "João" in call_arg
-        assert "collecting_email" in call_arg
 
 
 # ── route_profile ────────────────────────────────────────────────────
@@ -479,15 +412,11 @@ class TestRouteProfile:
             "ong_context": "",
             "response": "",
             "user_name": None,
-            "user_email": None,
             "profile_stage": stage,
         }
 
     def test_returns_profile_response_when_collecting_name(self):
         assert route_profile(self._state("collecting_name")) == "profile_response"
-
-    def test_returns_profile_response_when_collecting_email(self):
-        assert route_profile(self._state("collecting_email")) == "profile_response"
 
     def test_returns_profile_response_when_greeting(self):
         assert route_profile(self._state("greeting")) == "profile_response"

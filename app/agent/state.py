@@ -10,5 +10,4 @@ class ConversationState(TypedDict):
     ong_context: str
     response: str
     user_name: str | None
-    user_email: str | None
-    profile_stage: str  # "greeting" | "collecting_name" | "collecting_email" | "complete"
+    profile_stage: str  # "greeting" | "collecting_name" | "complete"

@@ -71,18 +71,15 @@ def update_user_profile(
     db: Session,
     conversation: Conversation,
     user_name: str | None = None,
-    user_email: str | None = None,
 ) -> Conversation:
-    """Persiste nome e/ou email do usuário na conversa."""
+    """Persiste nome do usuário na conversa."""
     if user_name is not None:
         conversation.user_name = user_name
-    if user_email is not None:
-        conversation.user_email = user_email
     db.commit()
     db.refresh(conversation)
     logger.info(
         f"Perfil atualizado [{conversation.phone_number}]: "
-        f"name={conversation.user_name}, email={conversation.user_email}"
+        f"name={conversation.user_name}"
     )
     return conversation
 

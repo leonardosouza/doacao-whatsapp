@@ -43,19 +43,6 @@ def _bot_asked_for_name(last_bot_content: str | None) -> bool:
     return any(kw in last_bot_content.lower() for kw in keywords)
 
 
-def _bot_asked_for_email(last_bot_content: str | None) -> bool:
-    """Verifica se a última mensagem do bot solicitou o email do usuário."""
-    if not last_bot_content:
-        return False
-    return "email" in last_bot_content.lower() or "e-mail" in last_bot_content.lower()
-
-
-def _extract_email_from_text(text: str) -> str | None:
-    """Extrai endereço de email de um texto via regex."""
-    match = re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", text)
-    return match.group(0) if match else None
-
-
 def _format_ong(index: int, ong: Ong) -> str:
     """Formata uma ONG em texto legível para o prompt."""
     category = ong.category
@@ -85,13 +72,12 @@ def _format_ong(index: int, ong: Ong) -> str:
 def make_profile_node(db: Session, conversation):
     """Cria o profile_node com acesso à conversa via closure.
 
-    Verifica o estágio de coleta de perfil e extrai nome/email da mensagem
+    Verifica o estágio de coleta de perfil e extrai o nome da mensagem
     quando o bot havia solicitado essa informação na interação anterior.
     """
 
     def profile_node(state: ConversationState) -> dict:
         user_name = conversation.user_name
-        user_email = conversation.user_email
 
         last_bot_msg = (
             db.query(Message)
@@ -122,27 +108,14 @@ def make_profile_node(db: Session, conversation):
                     except (json.JSONDecodeError, AttributeError):
                         logger.warning("Falha ao extrair nome do usuário")
 
-                profile_stage = "collecting_name" if user_name is None else (
-                    "collecting_email" if user_email is None else "complete"
-                )
-
-        elif user_email is None:
-            if _bot_asked_for_email(last_bot_content):
-                extracted_email = _extract_email_from_text(state["user_message"])
-                if extracted_email:
-                    conversation_service.update_user_profile(db, conversation, user_email=extracted_email)
-                    conversation.user_email = extracted_email
-                    user_email = extracted_email
-
-            profile_stage = "complete" if user_email else "collecting_email"
+                profile_stage = "collecting_name" if user_name is None else "complete"
 
         else:
             profile_stage = "complete"
 
-        logger.info(f"Profile: stage={profile_stage}, name={user_name}, email={user_email}")
+        logger.info(f"Profile: stage={profile_stage}, name={user_name}")
         return {
             "user_name": user_name,
-            "user_email": user_email,
             "profile_stage": profile_stage,
         }
 
@@ -163,7 +136,7 @@ def profile_response_node(state: ConversationState) -> dict:
 
 def route_profile(state: ConversationState) -> str:
     """Decide o próximo nó com base no estágio de coleta de perfil."""
-    if state["profile_stage"] in ("greeting", "collecting_name", "collecting_email"):
+    if state["profile_stage"] in ("greeting", "collecting_name"):
         return "profile_response"
     return "classify"
 

@@ -5,6 +5,20 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.1] - 2026-02-28
+
+### Removed
+- Etapa de coleta de email removida do fluxo conversacional (decisão de UX)
+- Fluxo simplificado: `greeting → collecting_name → complete` (antes passava por `collecting_email`)
+- Campo `user_email` removido da tabela `conversations`, model SQLAlchemy e estado do agente
+- Parâmetro `user_email` removido de `update_user_profile()` em `conversation_service`
+- 13 testes relacionados a coleta de email removidos (127 testes, 99% cobertura)
+
+### Infrastructure
+- Migration 008: `DROP COLUMN user_email FROM conversations`
+
+---
+
 ## [1.5.0] - 2026-02-28
 
 ### Added
