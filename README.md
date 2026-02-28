@@ -61,6 +61,15 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
    - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
 8. Resposta é salva no banco e enviada via Z-API
 
+### Grafo do Agente LangGraph
+
+![Grafo do Agente DoaZap](docs/agent_graph.png)
+
+O grafo possui dois caminhos a partir do nó `profile`:
+
+- **Fluxo de coleta de nome** (1ª e 2ª mensagem): `profile` → `profile_response` → `END`
+- **Fluxo principal** (usuário já identificado): `profile` → `classify` → `retrieve` → `enrich` → `generate` → `END`
+
 ### Intents suportados
 
 | Intent | Descrição |
@@ -154,7 +163,8 @@ doacao-whatsapp/
 │       └── retriever.py         # FAISS vectorstore + similarity search
 ├── scripts/
 │   ├── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
-│   └── psql-production.sh       # psql com timezone São Paulo (UTC-3)
+│   ├── psql-production.sh       # psql com timezone São Paulo (UTC-3)
+│   └── generate_graph.py        # Exporta diagrama PNG do grafo LangGraph
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
 │   └── versions/                # Migrations (001 → 014)
@@ -162,6 +172,8 @@ doacao-whatsapp/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   └── seed_ongs_v2.sql         # Seed de 52 ONGs aplicado em 2026-02-28
 ├── tests/                         # 162 testes automatizados (99% cobertura)
+├── docs/
+│   └── agent_graph.png          # Diagrama visual do grafo LangGraph
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -330,6 +342,16 @@ O script `scripts/psql-production.sh` conecta ao banco de produção com `timezo
 
 # Executar query direta
 ./scripts/psql-production.sh -c "SELECT * FROM v_messages_sp LIMIT 10;"
+```
+
+### Exportar diagrama do grafo LangGraph
+
+O script `scripts/generate_graph.py` gera um PNG do grafo do agente usando a API Mermaid.ink integrada ao LangGraph.
+
+```bash
+# Executar a partir da raiz do projeto
+python scripts/generate_graph.py
+# Saída: generate_graph.png (na pasta atual)
 ```
 
 ### Views diagnósticas no banco
