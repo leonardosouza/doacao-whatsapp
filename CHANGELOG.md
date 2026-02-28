@@ -53,7 +53,7 @@ e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - `conversations` e `messages` contêm dados sensíveis (telefones, conteúdo de conversas):
     acesso via PostgREST bloqueado para `anon` e `authenticated` (sem política explícita)
   - `ongs` é dado público: criada política `anon_select_ongs` permitindo SELECT apenas
-    (INSERT/UPDATE/DELETE bloqueados para anon; consistent com o endpoint público GET /api/ongs)
+    (INSERT/UPDATE/DELETE bloqueados para anon; consistente com o endpoint público GET /api/ongs)
   - O app FastAPI conecta como `postgres` (superusuário) e **não é afetado** — superusuários
     contornam RLS por padrão no PostgreSQL
 

@@ -125,7 +125,7 @@ O Z-API pode reenviar o mesmo webhook quando o servidor demora a responder. Para
 ```
 doacao-whatsapp/
 ├── app/
-│   ├── main.py                  # FastAPI app + logging
+│   ├── main.py                  # FastAPI app + logging em horário SP (UTC-3)
 │   ├── config.py                # Settings (pydantic-settings)
 │   ├── database.py              # SQLAlchemy engine e session
 │   ├── security.py              # API Key auth (protege rotas de escrita)
@@ -153,15 +153,14 @@ doacao-whatsapp/
 │       ├── loader.py            # Carrega BASE_INTERACTION.json
 │       └── retriever.py         # FAISS vectorstore + similarity search
 ├── scripts/
-│   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
+│   ├── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
+│   └── psql-production.sh       # psql com timezone São Paulo (UTC-3)
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations (001 → 011)
+│   └── versions/                # Migrations (001 → 014)
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
-│   ├── ONGS.json                # Dados originais (19 ONGs)
-│   ├── ONGS_v2.csv              # Dados ampliados (52 ONGs)
-│   └── seed_ongs_v2.sql         # Seed aplicado em 2026-02-28
+│   └── seed_ongs_v2.sql         # Seed de 52 ONGs aplicado em 2026-02-28
 ├── tests/                         # 162 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
@@ -292,6 +291,57 @@ https://seu-dominio.com/api/webhook
 | `NEW_RELIC_LOG` | Destino dos logs do agente New Relic | Não | `stdout` |
 | `NEW_RELIC_LOG_LEVEL` | Nível de log do agente New Relic | Não | `info` |
 | `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED` | Habilita rastreamento distribuído | Não | `true` |
+
+## Segurança do Banco de Dados
+
+### Row Level Security (RLS) no Supabase
+
+Todas as tabelas do schema `public` têm **Row Level Security habilitado** para bloquear acesso direto via API REST do Supabase (PostgREST), que usa o role `anon` por padrão.
+
+| Tabela | RLS | Política `anon` |
+|--------|:---:|-----------------|
+| `ongs` | ✅ | SELECT permitido (dado público, consistente com GET /api/ongs) |
+| `conversations` | ✅ | Nenhuma — bloqueado completamente |
+| `messages` | ✅ | Nenhuma — bloqueado completamente |
+| `alembic_version` | ✅ | Nenhuma — bloqueado completamente |
+
+O app FastAPI conecta como `postgres` (superusuário) e **não é afetado** pelo RLS — superusuários contornam RLS por padrão no PostgreSQL. O Alembic também opera como superusuário e continua executando migrations normalmente.
+
+## Observabilidade e Troubleshooting
+
+O banco de dados armazena todos os timestamps em **UTC** (padrão correto para sistemas distribuídos). Para facilitar a correlação de eventos durante incident response, a equipe (fuso horário: São Paulo, UTC-3) conta com três ferramentas de exibição em horário local:
+
+### Logs do Render
+
+Os logs da aplicação são formatados em horário de São Paulo via `_SPFormatter` em `app/main.py`. Exemplo:
+
+```
+2026-02-28 14:46:19,475 [INFO] app.api.routes.webhook: Mensagem processada
+# (horário SP — armazenado como 17:46:19 UTC no banco)
+```
+
+### psql com timezone SP
+
+O script `scripts/psql-production.sh` conecta ao banco de produção com `timezone=America/Sao_Paulo`. Todos os campos `timestamptz` são exibidos automaticamente em horário SP, sem precisar de `AT TIME ZONE` manual.
+
+```bash
+# Conectar ao banco
+./scripts/psql-production.sh
+
+# Executar query direta
+./scripts/psql-production.sh -c "SELECT * FROM v_messages_sp LIMIT 10;"
+```
+
+### Views diagnósticas no banco
+
+Disponíveis no **Supabase Table Editor** e via psql para incident response rápido:
+
+| View | Colunas principais |
+|------|--------------------|
+| `v_messages_sp` | `phone_number`, `direction`, `content`, `intent`, `created_at_sp` |
+| `v_conversations_sp` | `phone_number`, `status`, `user_name`, `started_at_sp`, `last_message_at_sp` |
+
+> Acesso restrito ao superusuário `postgres`. Nenhum GRANT concedido a `anon` ou `authenticated`.
 
 ## Deploy em Produção
 
