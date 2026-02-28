@@ -13,7 +13,7 @@ Toda mensagem recebida em `POST /api/webhook` passa pelos seguintes filtros em o
 | 0 | Validação de `instanceId` | Rejeita payloads de instâncias Z-API desconhecidas |
 | 1 | Rate limiting por número (banco de dados) | Silencia após ≥ 5 msgs em 60s; sobrevive a reinicializações |
 | 2 | Detecção de bot por auto-identificação | Descarta mensagens com assinaturas de CRM/assistentes virtuais |
-| 3 | Circuit breaker OOS consecutivo | Silencia após 3 respostas "Fora do Escopo" em 1 minuto |
+| 3 | Circuit breaker OOS proporcional | Silencia após ≥ 3 de 6 respostas "Fora do Escopo" em 2 minutos |
 | 4 | Limite de tentativas de coleta de nome | Máximo 3 tentativas; prossegue sem nome para evitar loop |
 
 ### Camada 0 — Validação de Origem (`instanceId`)
@@ -33,12 +33,15 @@ Limites: **5 mensagens / 60 segundos** por número de telefone.
 
 ### Camada 2 — Detecção de Bot
 
-Padrões detectados no texto da mensagem (case-insensitive):
+Padrões detectados no texto da mensagem (case-insensitive), organizados em três fases:
 
+**Fase 1** — Assistentes virtuais genéricos:
 - `sou a analista virtual`, `sou um assistente virtual`, `sou um atendente virtual`
 - `analista virtual da`, `atendente virtual da`
 - `posso te ajudar com diversos assuntos`
 - `informe o seu cpf ou cnpj`
+
+**Fase 2** — CRMs, NPS e bots de cobrança:
 - `vou verificar se há alguma mensagem`
 - `desculpe, não entendi isso`
 - `qual é o seu nível de satisfação`
@@ -47,9 +50,19 @@ Padrões detectados no texto da mensagem (case-insensitive):
 - `número de protocolo`
 - `já encontrei seu cadastro`
 
-### Camada 3 — Circuit Breaker OOS
+**Fase 3** — Concessionárias e fraudes (identificados em análise forense de produção):
+- `sou a sani` (bot Sabesp)
+- `2ª via de faturas` (padrão de concessionária de água/energia/gás)
+- `é sua vez!` (fraude/spam promocional)
+- `não vamos seguir nesse momento com` (rejeição de CRM)
+- `esse cpf não é válido` (loop de validação de CPF por bot)
+- `esse cpf ou cnpj que você está` (variante CPFL do loop de CPF)
 
-Detecta quando as últimas 3 respostas `outbound` para um número foram classificadas como `"Fora do Escopo"` dentro de 1 minuto. Nesse caso, a próxima mensagem é descartada sem resposta, interrompendo loops de bot que ignoram redirecionamentos.
+### Camada 3 — Circuit Breaker OOS (Proporcional)
+
+Detecta quando **ao menos 3 das últimas 6 respostas `outbound`** para um número foram classificadas como `"Fora do Escopo"` dentro de uma janela de 2 minutos. Nesse caso, a próxima mensagem é descartada sem resposta.
+
+A lógica proporcional (em vez de consecutiva) corrige um bypass onde bots de terceiros intercalavam mensagens genéricas (`Ambíguo`) entre as respostas OOS para quebrar a contagem consecutiva e continuar o loop.
 
 ### Guard-Rails do Agente LLM
 

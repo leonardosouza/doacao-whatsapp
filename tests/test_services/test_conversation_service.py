@@ -180,13 +180,35 @@ class TestCountRecentInbound:
 
 class TestHasConsecutiveOutOfScope:
     def test_returns_true_when_all_oos(self, db_session, sample_conversation):
+        """3 OOS em 6 mensagens → acima do threshold → True."""
         for _ in range(3):
             conversation_service.save_message(
                 db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
             )
         assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is True
 
-    def test_returns_false_when_mixed(self, db_session, sample_conversation):
+    def test_returns_false_when_below_threshold(self, db_session, sample_conversation):
+        """2 OOS < threshold de 3 → False."""
+        for _ in range(2):
+            conversation_service.save_message(
+                db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
+            )
+        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is False
+
+    def test_returns_true_when_oos_intercalado_atinge_threshold(self, db_session, sample_conversation):
+        """OOS intercalados com Ambíguo devem ativar o circuit breaker quando ≥ 3 no total.
+
+        Replica o padrão do bot Sabesp: OOS → OOS → Ambíguo → OOS (3 OOS em 4 msgs = True).
+        """
+        intents = ["Fora do Escopo", "Fora do Escopo", "Ambíguo", "Fora do Escopo"]
+        for intent in intents:
+            conversation_service.save_message(
+                db_session, sample_conversation, "outbound", "Msg", intent=intent
+            )
+        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is True
+
+    def test_returns_false_when_mixed_below_threshold(self, db_session, sample_conversation):
+        """1 não-OOS + 2 OOS = 2 OOS < threshold de 3 → False."""
         conversation_service.save_message(
             db_session, sample_conversation, "outbound", "Oi", intent="Quero Doar"
         )
@@ -196,13 +218,6 @@ class TestHasConsecutiveOutOfScope:
         conversation_service.save_message(
             db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
         )
-        assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is False
-
-    def test_returns_false_when_below_threshold(self, db_session, sample_conversation):
-        for _ in range(2):
-            conversation_service.save_message(
-                db_session, sample_conversation, "outbound", "Desculpe", intent="Fora do Escopo"
-            )
         assert conversation_service.has_consecutive_out_of_scope(db_session, sample_conversation.phone_number) is False
 
 

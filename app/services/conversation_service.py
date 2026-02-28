@@ -115,9 +115,15 @@ def has_consecutive_out_of_scope(
     db: Session,
     phone: str,
     threshold: int = 3,
-    window_minutes: int = 1,
+    window: int = 6,
+    window_minutes: int = 2,
 ) -> bool:
-    """Retorna True se as últimas `threshold` respostas foram todas 'Fora do Escopo'."""
+    """Retorna True se ao menos `threshold` das últimas `window` respostas (em `window_minutes`)
+    foram classificadas como 'Fora do Escopo'.
+
+    Detecta bots que intercalam respostas de outros serviços com mensagens genéricas,
+    quebrando a contagem consecutiva da lógica anterior.
+    """
     cutoff = datetime.now(UTC) - timedelta(minutes=window_minutes)
     recent = (
         db.query(Message)
@@ -128,10 +134,11 @@ def has_consecutive_out_of_scope(
             Message.created_at > cutoff,
         )
         .order_by(Message.created_at.desc())
-        .limit(threshold)
+        .limit(window)
         .all()
     )
-    return len(recent) >= threshold and all(m.intent == "Fora do Escopo" for m in recent)
+    oos_count = sum(1 for m in recent if m.intent == "Fora do Escopo")
+    return oos_count >= threshold
 
 
 def format_history(messages: list[Message]) -> str:

@@ -312,6 +312,28 @@ class TestBotDetection:
             assert resp.json()["status"] == "ignored", f"Assinatura não detectada: {text!r}"
             assert resp.json()["reason"] == "bot_detected", f"Razão incorreta para: {text!r}"
 
+    def test_bot_detected_new_signatures_fase3(self, client):
+        """Assinaturas da Fase 3 (concessionárias e fraudes) devem ser detectadas como bot."""
+        new_signatures = [
+            # Bot Sabesp/concessionária
+            "Oi! Sou a Sani da Sabesp. Posso ajudar com conta de água.",
+            "Posso oferecer a 2ª via de faturas e outros serviços.",
+            # Fraude/spam promocional
+            "É sua vez! Estamos prontos para iniciar e temos uma surpresa de R$ 50,00.",
+            # CRM — rejeição de cadastro
+            "Não vamos seguir nesse momento com o seu cadastro.",
+            # Loop de validação de CPF por bot
+            "Esse CPF não é válido. Me manda de novo pra gente continuar.",
+            "Esse CPF ou CNPJ que você está digitando é inválido.",
+        ]
+        for text in new_signatures:
+            resp = client.post(
+                "/api/webhook",
+                json=_make_payload(phone="5519888887777", text={"message": text}),
+            )
+            assert resp.json()["status"] == "ignored", f"Assinatura não detectada: {text!r}"
+            assert resp.json()["reason"] == "bot_detected", f"Razão incorreta para: {text!r}"
+
     @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
     @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
     def test_bot_not_detected_for_normal_message(self, mock_proc, mock_send, client):

@@ -5,6 +5,23 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.10] - 2026-02-28
+
+### Security
+- **Camada 2 — Fase 3 de assinaturas de bot** (`webhook.py`): adicionadas 6 novas assinaturas
+  identificadas em análise forense do banco de produção — bot Sabesp (`"sou a sani"`,
+  `"2ª via de faturas"`), fraude/spam (`"é sua vez!"`), rejeição de CRM
+  (`"não vamos seguir nesse momento com"`), loops de CPF por bot
+  (`"esse cpf não é válido"`, `"esse cpf ou cnpj que você está"`).
+- **Camada 3 — Circuit breaker proporcional** (`conversation_service.py`): lógica alterada de
+  "3 OOS consecutivos em 1 min" para "3 de 6 outbound OOS em 2 min". Corrige bypass onde bots
+  (ex.: Sabesp) intercalavam respostas `Ambíguo` para quebrar a contagem consecutiva.
+
+### Added
+- 2 novos testes de bot detection (Fase 3) em `test_webhook.py`.
+- 1 novo teste de circuit breaker proporcional (`test_returns_true_when_oos_intercalado_atinge_threshold`)
+  e renomeação/documentação dos demais em `test_conversation_service.py`.
+
 ## [1.5.9] - 2026-02-28
 
 ### Security

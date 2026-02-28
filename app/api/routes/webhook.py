@@ -50,6 +50,13 @@ _BOT_SIGNATURES = [
     "queremos saber sua opinião",
     "número de protocolo",
     "já encontrei seu cadastro",
+    # Fase 3 (v1.5.10) — bots de concessionárias e fraudes identificados em produção
+    "sou a sani",                          # bot Sabesp
+    "2ª via de faturas",                   # padrão de concessionária (água/energia/gás)
+    "é sua vez!",                          # fraude/spam promocional
+    "não vamos seguir nesse momento com",  # rejeição de CRM
+    "esse cpf não é válido",               # loop de validação de CPF por bot
+    "esse cpf ou cnpj que você está",      # variante CPFL do loop de CPF
 ]
 
 
