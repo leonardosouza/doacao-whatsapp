@@ -5,6 +5,18 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.3] - 2026-02-28
+
+### Added
+- **Feedback para mensagens de mídia**: ao receber áudio, vídeo, imagem, documento ou sticker,
+  o bot responde com uma mensagem amigável explicando que apenas texto é suportado
+- Novos modelos Pydantic no schema do webhook: `AudioContent`, `VideoContent`, `ImageContent`,
+  `DocumentContent`, `StickerContent`
+- Método `get_media_type()` em `ZAPIWebhookPayload` detecta o tipo de mídia recebido
+- 13 novos testes (6 de schema, 6 de handler, 1 de isolamento do agente) — total: 144 testes
+
+---
+
 ## [1.5.2] - 2026-02-28
 
 ### Fixed

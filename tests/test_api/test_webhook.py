@@ -33,6 +33,59 @@ class TestWebhook:
         assert data["reason"] == "no text content"
 
     @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_sends_feedback_on_audio(self, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, audio={"audioUrl": "https://a.com/a.ogg", "mimeType": "audio/ogg"})
+        resp = client.post("/api/webhook", json=payload)
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "audio"
+        mock_send.assert_called_once()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_sends_feedback_on_video(self, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, video={"videoUrl": "https://a.com/v.mp4"})
+        resp = client.post("/api/webhook", json=payload)
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "video"
+        mock_send.assert_called_once()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_sends_feedback_on_image(self, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, image={"imageUrl": "https://a.com/i.jpg"})
+        resp = client.post("/api/webhook", json=payload)
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "image"
+        mock_send.assert_called_once()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_sends_feedback_on_document(self, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, document={"documentUrl": "https://a.com/d.pdf", "fileName": "d.pdf"})
+        resp = client.post("/api/webhook", json=payload)
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "document"
+        mock_send.assert_called_once()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_sends_feedback_on_sticker(self, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, sticker={"stickerUrl": "https://a.com/s.webp"})
+        resp = client.post("/api/webhook", json=payload)
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "sticker"
+        mock_send.assert_called_once()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_process_message_not_called_on_media(self, mock_process, mock_send, client):
+        mock_send.return_value = {}
+        payload = _make_payload(text=None, audio={"audioUrl": "https://a.com/a.ogg"})
+        client.post("/api/webhook", json=payload)
+        mock_process.assert_not_called()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
     @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
     def test_ignores_duplicate_message_id(self, mock_process, mock_send, client):
         """Segundo webhook com mesmo messageId deve ser ignorado sem chamar o agente."""

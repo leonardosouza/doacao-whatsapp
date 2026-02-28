@@ -19,6 +19,16 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
     if payload.fromMe or payload.isGroup:
         return {"status": "ignored"}
 
+    media_type = payload.get_media_type()
+    if media_type:
+        logger.info(f"Mídia recebida ({media_type}) de {payload.phone} — enviando aviso ao usuário")
+        await zapi_service.send_text_message(
+            payload.phone,
+            "Oi! 😊 Por enquanto só consigo processar mensagens de texto. "
+            "Escreva sua mensagem e terei prazer em ajudar! 🤝",
+        )
+        return {"status": "unsupported_media", "reason": media_type}
+
     message_text = payload.get_message_text()
     if not message_text:
         return {"status": "ignored", "reason": "no text content"}
