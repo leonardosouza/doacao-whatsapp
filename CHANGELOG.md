@@ -5,6 +5,27 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.4.0] - 2026-02-27
+
+### Added
+- **Coleta de perfil do usuário**: agente coleta nome e email nas primeiras interações,
+  associando-os ao número de telefone. Uma vez persistidos, nunca são solicitados novamente
+- Novo nó `profile_node` no início do pipeline LangGraph com roteamento condicional:
+  coleta nome → coleta email → atendimento normal
+- `profile_response_node` gera perguntas empáticas via LLM (tom WhatsApp)
+- Extração de nome via LLM (`EXTRACT_NAME_PROMPT`) e email via regex (sem custo adicional de LLM)
+- Helpers `_bot_asked_for_name`, `_bot_asked_for_email`, `_extract_email_from_text`
+  detectam contexto da última interação para saber o que foi perguntado
+- Migration 003: colunas `user_name` e `user_email` na tabela `conversations`
+- `update_user_profile()` no `conversation_service` para persistência dos dados coletados
+- **Guard-rails contra uso indevido**: novo intent "Fora do Escopo" com regras explícitas
+  para pop culture, esportes, jailbreak, impersonation de bots e prompt injection
+- Seção `LIMITES E SEGURANÇA` no `GENERATE_PROMPT` com instrução de recusa gentil
+- Retorno antecipado no `enrich_node` para "Fora do Escopo" (zero queries ao banco)
+- 7 exemplos reais de interações indevidas adicionados à base RAG (BASE_INTERACTION.json),
+  baseados em análise do banco de produção
+- 26 novos testes automatizados (138 testes no total, 99%+ de cobertura)
+
 ## [1.3.1] - 2026-02-24
 
 ### Fixed
