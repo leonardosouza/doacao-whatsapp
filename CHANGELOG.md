@@ -5,6 +5,28 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.5.4] - 2026-02-28
+
+### Security
+- **Camada 1 — Rate limiting por telefone**: máximo de 12 mensagens por minuto por número,
+  usando janela deslizante em memória; excedido o limite, a mensagem é descartada silenciosamente
+- **Camada 2 — Detecção de bot por auto-identificação**: mensagens com frases típicas de
+  assistentes virtuais ("sou a analista virtual", "atendente virtual da…", etc.) são descartadas
+  silenciosamente antes de qualquer processamento pelo agente ou salvamento no banco
+- **Camada 3 — Limite de tentativas na coleta de nome**: após 3 falhas, o agente prossegue sem
+  nome para evitar loop infinito com bots externos que não fornecem resposta válida
+
+### Added
+- Campo `profile_retries: int` no `ConversationState` (rastreia tentativas falhas de nome)
+- Constante `MAX_PROFILE_RETRIES = 3` em `app/agent/nodes.py`
+- 8 novos testes (5 de webhook: rate limit + bot detection; 3 de nodes: retry limit) — total: 152 testes
+
+### Documentation
+- README atualizado: seção "Guard-rails e segurança" descreve as 3 camadas de proteção
+- Contagem de testes atualizada: 144 → 152
+
+---
+
 ## [1.5.3] - 2026-02-28
 
 ### Added

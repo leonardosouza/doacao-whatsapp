@@ -310,6 +310,7 @@ class TestMakeProfileNode:
         "response": "",
         "user_name": None,
         "profile_stage": "",
+        "profile_retries": 0,
     }
 
     def _make_conv(self, user_name=None):
@@ -376,6 +377,45 @@ class TestMakeProfileNode:
         result = node({**self._BASE_STATE, "user_message": "Oi"})
         assert result["profile_stage"] == "greeting"
         assert result["user_name"] is None
+
+    @patch("app.agent.nodes.conversation_service")
+    @patch("app.agent.nodes.llm")
+    def test_profile_retries_increments_on_failed_extraction(self, mock_llm, mock_service):
+        """Falha ao extrair nome deve incrementar profile_retries de 0 para 1."""
+        mock_llm.invoke.return_value = MagicMock(content="não entendi")
+        conv = self._make_conv()
+        db = self._make_db(last_bot_content="Qual é o seu nome?")
+        node = make_profile_node(db, conv)
+        result = node({**self._BASE_STATE, "user_message": "abc", "profile_retries": 0})
+        assert result["profile_retries"] == 1
+        assert result["profile_stage"] == "collecting_name"
+
+    @patch("app.agent.nodes.conversation_service")
+    @patch("app.agent.nodes.llm")
+    def test_profile_proceeds_after_max_retries(self, mock_llm, mock_service):
+        """Após MAX_PROFILE_RETRIES falhas, prosseguir sem nome (evita loop de bot)."""
+        mock_llm.invoke.return_value = MagicMock(content="não entendi")
+        conv = self._make_conv()
+        db = self._make_db(last_bot_content="Qual é o seu nome?")
+        node = make_profile_node(db, conv)
+        # retries já em 2 (MAX-1) → mais uma falha deve atingir o limite
+        result = node({**self._BASE_STATE, "user_message": "abc", "profile_retries": 2})
+        assert result["profile_retries"] == 3
+        assert result["profile_stage"] == "complete"
+        assert result["user_name"] is None
+
+    @patch("app.agent.nodes.conversation_service")
+    @patch("app.agent.nodes.llm")
+    def test_profile_retries_not_incremented_on_name_success(self, mock_llm, mock_service):
+        """Extração de nome bem-sucedida não deve incrementar profile_retries."""
+        mock_llm.invoke.return_value = MagicMock(content='{"name": "Ana", "extracted": true}')
+        conv = self._make_conv()
+        db = self._make_db(last_bot_content="Qual é o seu nome?")
+        node = make_profile_node(db, conv)
+        result = node({**self._BASE_STATE, "user_message": "Me chamo Ana", "profile_retries": 1})
+        assert result["user_name"] == "Ana"
+        assert result["profile_stage"] == "complete"
+        assert result["profile_retries"] == 1  # permanece inalterado
 
 
 # ── profile_response_node ────────────────────────────────────────────

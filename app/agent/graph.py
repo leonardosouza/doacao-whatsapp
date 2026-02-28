@@ -61,6 +61,7 @@ async def process_message(
         "response": "",
         "user_name": conversation.user_name if conversation else None,
         "profile_stage": "complete",  # sobrescrito pelo profile_node
+        "profile_retries": 0,
     }
 
     result = await graph.ainvoke(initial_state)

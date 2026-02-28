@@ -20,6 +20,8 @@ from app.services import conversation_service
 
 logger = logging.getLogger(__name__)
 
+MAX_PROFILE_RETRIES = 3  # tentativas máximas de coleta de nome antes de prosseguir sem ele
+
 llm = ChatOpenAI(
     model=settings.OPENAI_MODEL,
     temperature=settings.OPENAI_TEMPERATURE,
@@ -90,6 +92,8 @@ def make_profile_node(db: Session, conversation):
         )
         last_bot_content = last_bot_msg.content if last_bot_msg else None
 
+        retries = state.get("profile_retries", 0)
+
         if user_name is None:
             if last_bot_content is None:
                 # Primeira interação: nenhuma mensagem anterior do bot → apresentar DoaZap
@@ -108,15 +112,28 @@ def make_profile_node(db: Session, conversation):
                     except (json.JSONDecodeError, AttributeError):
                         logger.warning("Falha ao extrair nome do usuário")
 
-                profile_stage = "collecting_name" if user_name is None else "complete"
+                if user_name is None:
+                    retries += 1
+                    if retries >= MAX_PROFILE_RETRIES:
+                        # Esgotou tentativas: prossegue sem nome para não entrar em loop
+                        profile_stage = "complete"
+                        logger.warning(
+                            f"Limite de tentativas de coleta de nome atingido "
+                            f"(conv={conversation.id}, retries={retries})"
+                        )
+                    else:
+                        profile_stage = "collecting_name"
+                else:
+                    profile_stage = "complete"
 
         else:
             profile_stage = "complete"
 
-        logger.info(f"Profile: stage={profile_stage}, name={user_name}")
+        logger.info(f"Profile: stage={profile_stage}, name={user_name}, retries={retries}")
         return {
             "user_name": user_name,
             "profile_stage": profile_stage,
+            "profile_retries": retries,
         }
 
     return profile_node

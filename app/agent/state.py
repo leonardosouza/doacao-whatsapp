@@ -11,3 +11,4 @@ class ConversationState(TypedDict):
     response: str
     user_name: str | None
     profile_stage: str  # "greeting" | "collecting_name" | "complete"
+    profile_retries: int  # tentativas falhas de coleta de nome

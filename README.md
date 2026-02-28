@@ -42,8 +42,10 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
 3. FastAPI recebe o payload e aplica filtros sequenciais:
    - Mensagens `fromMe` ou de grupo → ignoradas silenciosamente
    - **Mídia** (áudio, vídeo, imagem, documento, sticker) → envia aviso ao usuário e encerra
-   - `messageId` já processado → descartado (deduplicação de webhook duplicado pelo Z-API)
+   - **Rate limit** excedido (> 12 msgs/min do mesmo número) → ignorado silenciosamente
    - Sem texto → ignorado silenciosamente
+   - **Bot detectado** por auto-identificação na mensagem → ignorado silenciosamente
+   - `messageId` já processado → descartado (deduplicação de webhook duplicado pelo Z-API)
 4. Busca/cria sessão de conversa no PostgreSQL
 5. Salva a mensagem inbound com o `messageId` do Z-API (garante idempotência)
 6. Recupera histórico das últimas mensagens da conversa (memória conversacional)
@@ -72,7 +74,15 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
 
 ### Guard-rails e segurança
 
-O agente possui proteção nativa contra uso indevido. Mensagens classificadas como "Fora do Escopo" recebem uma resposta gentil de redirecionamento, sem acesso ao banco de ONGs.
+O sistema possui três camadas de proteção independentes:
+
+**Camada 1 — Rate limiting (webhook):** Máximo de 12 mensagens por minuto por número de telefone, usando janela deslizante em memória. Excedido o limite, a mensagem é descartada silenciosamente (sem resposta), interrompendo loops de bots automatizados.
+
+**Camada 2 — Detecção de bot por auto-identificação (webhook):** Mensagens que contêm frases típicas de assistentes virtuais ("sou a analista virtual", "sou um assistente virtual", "atendente virtual da…") são descartadas silenciosamente antes de qualquer processamento pelo agente.
+
+**Camada 3 — Limite de tentativas de coleta de nome (agente):** O estágio de coleta do nome do usuário tem no máximo 3 tentativas. Após esse limite, o bot prossegue o atendimento normalmente sem nome, evitando o loop infinito caso um bot externo não consiga fornecer uma resposta válida.
+
+**Guard-rails do agente (LLM):** Mensagens classificadas como "Fora do Escopo" recebem uma resposta gentil de redirecionamento, sem acesso ao banco de ONGs.
 
 Padrões bloqueados automaticamente:
 
@@ -346,7 +356,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **144 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **152 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 

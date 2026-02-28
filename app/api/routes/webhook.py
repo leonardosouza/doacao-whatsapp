@@ -1,4 +1,6 @@
 import logging
+import time
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -12,6 +14,43 @@ from app.services import conversation_service, zapi_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# ---------------------------------------------------------------------------
+# Camada 1: Rate limiting por telefone (janela deslizante em memória)
+# ---------------------------------------------------------------------------
+_rate_store: dict[str, list[float]] = defaultdict(list)
+_RATE_LIMIT = 12   # máximo de mensagens por janela
+_RATE_WINDOW = 60  # janela em segundos
+
+
+def _is_rate_limited(phone: str) -> bool:
+    """Retorna True se o telefone excedeu o limite de mensagens na janela atual."""
+    now = time.time()
+    cutoff = now - _RATE_WINDOW
+    timestamps = [t for t in _rate_store[phone] if t > cutoff]
+    timestamps.append(now)
+    _rate_store[phone] = timestamps
+    return len(timestamps) > _RATE_LIMIT
+
+
+# ---------------------------------------------------------------------------
+# Camada 2: Detecção de bots por auto-identificação na mensagem
+# ---------------------------------------------------------------------------
+_BOT_SIGNATURES = [
+    "sou a analista virtual",
+    "sou um assistente virtual",
+    "sou um atendente virtual",
+    "analista virtual da ",
+    "atendente virtual da ",
+    "posso te ajudar com diversos assuntos",
+    "informe o seu cpf ou cnpj",
+]
+
+
+def _is_bot_message(text: str) -> bool:
+    """Retorna True se a mensagem contém assinatura típica de bot automatizado."""
+    t = text.lower()
+    return any(sig in t for sig in _BOT_SIGNATURES)
 
 
 @router.post("/webhook", response_model=WebhookResponse)
@@ -29,9 +68,19 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         )
         return {"status": "unsupported_media", "reason": media_type}
 
+    # Camada 1: Rate limiting — sem resposta ao remetente (silêncio quebra loops de bot)
+    if _is_rate_limited(payload.phone):
+        logger.warning(f"Rate limit excedido para {payload.phone} — mensagem ignorada")
+        return {"status": "ignored", "reason": "rate_limited"}
+
     message_text = payload.get_message_text()
     if not message_text:
         return {"status": "ignored", "reason": "no text content"}
+
+    # Camada 2: Detecção de bot por auto-identificação — sem resposta
+    if _is_bot_message(message_text):
+        logger.warning(f"Bot detectado em {payload.phone}: {message_text[:80]!r}")
+        return {"status": "ignored", "reason": "bot_detected"}
 
     if conversation_service.is_duplicate_message(db, payload.messageId):
         logger.warning(f"Webhook duplicado ignorado: messageId={payload.messageId}")

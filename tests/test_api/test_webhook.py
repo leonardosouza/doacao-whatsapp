@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 
 def _make_payload(**overrides):
@@ -197,3 +197,80 @@ class TestWebhook:
         # The conversation should be reused, not duplicated
         # We can verify by checking process_message was called (the flow ran)
         mock_process.assert_called_once()
+
+
+class TestRateLimiting:
+    """Testes para a Camada 1: rate limiting por telefone."""
+
+    def test_rate_limit_blocks_after_12_messages(self, client):
+        """13ª mensagem do mesmo telefone na janela de 60s deve ser bloqueada."""
+        phone = "5519111111001"
+        with (
+            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
+            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+        ):
+            mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+            mock_send.return_value = {}
+
+            for i in range(12):
+                resp = client.post("/api/webhook", json=_make_payload(phone=phone, messageId=f"rl-{i}"))
+                assert resp.json().get("reason") != "rate_limited", f"Request {i + 1} bloqueada prematuramente"
+
+            # 13ª deve ser bloqueada
+            resp = client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rl-12"))
+            assert resp.json()["status"] == "ignored"
+            assert resp.json()["reason"] == "rate_limited"
+
+    def test_rate_limit_different_phones_are_independent(self, client):
+        """Rate limit de um telefone não deve afetar outros telefones."""
+        phone_a, phone_b = "5519111111002", "5519111111003"
+        with (
+            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
+            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+        ):
+            mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+            mock_send.return_value = {}
+
+            for i in range(12):
+                r_a = client.post("/api/webhook", json=_make_payload(phone=phone_a, messageId=f"ia-{i}"))
+                r_b = client.post("/api/webhook", json=_make_payload(phone=phone_b, messageId=f"ib-{i}"))
+                assert r_a.json().get("reason") != "rate_limited"
+                assert r_b.json().get("reason") != "rate_limited"
+
+
+class TestBotDetection:
+    """Testes para a Camada 2: detecção de bot por auto-identificação."""
+
+    def test_bot_detected_cpfl_signature(self, client):
+        """Mensagem com auto-identificação 'analista virtual da CPFL' retorna bot_detected."""
+        text = "Olá, eu sou a analista virtual da CPFL. Posso te ajudar com diversos assuntos!"
+        resp = client.post(
+            "/api/webhook",
+            json=_make_payload(phone="5519888880001", text={"message": text}),
+        )
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_bot_detected_no_response_sent(self, mock_proc, mock_send, client):
+        """Bot detectado não deve disparar resposta nem acionar o agente."""
+        text = "sou um assistente virtual, como posso ajudar?"
+        client.post(
+            "/api/webhook",
+            json=_make_payload(phone="5519888880002", text={"message": text}),
+        )
+        mock_send.assert_not_called()
+        mock_proc.assert_not_called()
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_bot_not_detected_for_normal_message(self, mock_proc, mock_send, client):
+        """Mensagem humana normal não deve ser bloqueada pela detecção de bot."""
+        mock_proc.return_value = {"response": "Olá!", "intent": "Ambíguo", "sentiment": "Neutro"}
+        mock_send.return_value = {}
+        resp = client.post(
+            "/api/webhook",
+            json=_make_payload(phone="5519888880003", text={"message": "Quero fazer uma doação"}),
+        )
+        assert resp.json()["status"] == "processed"
