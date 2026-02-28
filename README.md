@@ -12,6 +12,8 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 - **Obter informações** — saber mais sobre as ONGs parceiras e seus projetos
 - **Parcerias corporativas** — conectar empresas à causa
 
+O atendimento é personalizado: nas primeiras interações, o bot coleta nome e email do usuário e os associa ao número de telefone. Uma vez registrados, não são solicitados novamente.
+
 ## Arquitetura
 
 ```
@@ -40,8 +42,11 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 3. FastAPI recebe o payload, extrai telefone e mensagem
 4. Busca/cria sessão de conversa no PostgreSQL
 5. Recupera histórico das últimas mensagens da conversa (memória conversacional)
-6. Agente LangGraph processa a mensagem com contexto do histórico:
-   - **Classify** — GPT-4.1-mini identifica intent e sentimento
+6. Agente LangGraph processa a mensagem:
+   - **Profile** — verifica/coleta nome e email nas primeiras interações
+     - Se o perfil ainda não está completo → gera pergunta empática e encerra o fluxo
+     - Extração de nome via LLM (`EXTRACT_NAME_PROMPT`) e email via regex
+   - **Classify** — GPT-4.1-mini identifica intent e sentimento (com guard-rails)
    - **Retrieve** — FAISS busca interações similares na base RAG
    - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
    - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
@@ -56,7 +61,20 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 | Voluntariado | Interesse em ser voluntário |
 | Parceria Corporativa | Empresa buscando parceria |
 | Informação Geral | Perguntas sobre as ONGs parceiras |
-| Ambíguo | Mensagem sem intenção clara |
+| Ambíguo | Mensagem sem intenção clara relacionada à plataforma |
+| Fora do Escopo | Mensagem não relacionada a doações, ONGs ou assistência social |
+
+### Guard-rails e segurança
+
+O agente possui proteção nativa contra uso indevido. Mensagens classificadas como "Fora do Escopo" recebem uma resposta gentil de redirecionamento, sem acesso ao banco de ONGs.
+
+Padrões bloqueados automaticamente:
+
+- Perguntas de cultura pop, esportes, ciência geral, política
+- Tentativas de **prompt injection** ("ignore suas instruções…")
+- Tentativas de **jailbreak** ("DAN", "modo sem restrições"…)
+- Impersonação de outro bot ou serviço externo (cobranças, boletos)
+- Solicitação do prompt de sistema ou de outra identidade
 
 ## Stack Tecnológica
 
@@ -100,10 +118,10 @@ doacao-whatsapp/
 │   │   ├── conversation_service.py  # Gerenciamento de conversas
 │   │   └── ong_service.py       # CRUD de ONGs parceiras
 │   ├── agent/
-│   │   ├── graph.py             # Grafo LangGraph (classify → retrieve → enrich → generate)
-│   │   ├── nodes.py             # Nós: classify, retrieve, enrich, generate
+│   │   ├── graph.py             # Grafo LangGraph (profile → classify → retrieve → enrich → generate)
+│   │   ├── nodes.py             # Nós: profile, classify, retrieve, enrich, generate + guard-rails
 │   │   ├── state.py             # ConversationState (TypedDict)
-│   │   └── prompts.py           # Prompts de classificação e geração
+│   │   └── prompts.py           # Prompts de perfil, classificação e geração
 │   └── rag/
 │       ├── loader.py            # Carrega BASE_INTERACTION.json
 │       └── retriever.py         # FAISS vectorstore + similarity search
@@ -111,11 +129,11 @@ doacao-whatsapp/
 │   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations
+│   └── versions/                # Migrations (001 → 003)
 ├── data/
-│   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (50 interações)
+│   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   └── ONGS.json                # Dados das 19 ONGs parceiras
-├── tests/                         # 104 testes automatizados (99% cobertura)
+├── tests/                         # 138 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -312,7 +330,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **108 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **138 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 
@@ -350,7 +368,7 @@ tests/
 │   ├── test_ong_routes.py             # Rotas CRUD de ONGs
 │   └── test_webhook.py                # Webhook do WhatsApp
 ├── test_agent/
-│   ├── test_nodes.py                  # Nós do LangGraph (classify, retrieve, enrich, generate)
+│   ├── test_nodes.py                  # Nós do LangGraph (profile, classify, retrieve, enrich, generate)
 │   └── test_graph.py                  # Grafo compilado e fluxo end-to-end
 └── test_rag/
     ├── test_loader.py                 # Carregamento da base de conhecimento
@@ -365,9 +383,10 @@ tests/
 | api/routes (health, webhook, ong) | 100% |
 | schemas (webhook, ong) | 100% |
 | security | 100% |
-| services (conversation, ong, zapi) | 98% |
+| services (conversation, ong, zapi) | 100% |
 | rag (loader, retriever) | 100% |
 | config, main | 100% |
+| models (conversation, message, ong) | 100% |
 
 ## Equipe
 
