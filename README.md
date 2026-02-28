@@ -12,7 +12,7 @@ O DoaZap permite que usuários interajam via WhatsApp para:
 - **Obter informações** — saber mais sobre as ONGs parceiras e seus projetos
 - **Parcerias corporativas** — conectar empresas à causa
 
-O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (missão e serviços do DoaZap) e, em seguida, coleta nome e email do usuário em no máximo dois turnos. Uma vez registrados, os dados não são solicitados novamente.
+O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (missão e serviços do DoaZap) e, em seguida, coleta o nome do usuário. Uma vez registrado, o nome não é solicitado novamente.
 
 ## Arquitetura
 
@@ -24,10 +24,10 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
                                                   │
                                           ┌───────┴─────────┐
                                           │                 │
-                                    ┌─────▼─────┐   ┌──────▼──────┐
-                                    │ LangGraph │   │ PostgreSQL  │
-                                    │ (Agente)  │   │ (Dados)     │
-                                    └─────┬─────┘   └─────────────┘
+                                    ┌─────▼─────┐    ┌──────▼──────┐
+                                    │ LangGraph │    │ PostgreSQL  │
+                                    │ (Agente)  │    │ (Dados)     │
+                                    └─────┬─────┘    └─────────────┘
                                           │
                                     ┌─────▼──────┐
                                     │  RAG /     │
@@ -39,20 +39,24 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
 
 1. Usuário envia mensagem no WhatsApp
 2. Z-API recebe e dispara webhook `POST /api/webhook`
-3. FastAPI recebe o payload, extrai telefone e mensagem
+3. FastAPI recebe o payload e aplica filtros sequenciais:
+   - Mensagens `fromMe` ou de grupo → ignoradas silenciosamente
+   - **Mídia** (áudio, vídeo, imagem, documento, sticker) → envia aviso ao usuário e encerra
+   - `messageId` já processado → descartado (deduplicação de webhook duplicado pelo Z-API)
+   - Sem texto → ignorado silenciosamente
 4. Busca/cria sessão de conversa no PostgreSQL
-5. Recupera histórico das últimas mensagens da conversa (memória conversacional)
-6. Agente LangGraph processa a mensagem:
-   - **Profile** — verifica/coleta nome e email nas primeiras interações:
+5. Salva a mensagem inbound com o `messageId` do Z-API (garante idempotência)
+6. Recupera histórico das últimas mensagens da conversa (memória conversacional)
+7. Agente LangGraph processa a mensagem:
+   - **Profile** — verifica/coleta o nome do usuário nas primeiras interações:
      - **1ª mensagem** (`greeting`): apresenta o DoaZap, reconhece brevemente a intenção e pede o nome
      - **2ª mensagem** (`collecting_name`): pede o nome novamente se não foi fornecido
-     - **3ª mensagem** (`collecting_email`): agradece pelo nome e pede o email
-     - Extração de nome via LLM (`EXTRACT_NAME_PROMPT`) e email via regex; perfil persistido no banco
+     - Nome extraído via LLM (`EXTRACT_NAME_PROMPT`) e persistido no banco
    - **Classify** — GPT-4.1-mini identifica intent e sentimento (com guard-rails)
    - **Retrieve** — FAISS busca interações similares na base RAG
    - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
    - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
-7. Resposta é salva no banco e enviada via Z-API
+8. Resposta é salva no banco e enviada via Z-API
 
 ### Intents suportados
 
@@ -77,6 +81,14 @@ Padrões bloqueados automaticamente:
 - Tentativas de **jailbreak** ("DAN", "modo sem restrições"…)
 - Impersonação de outro bot ou serviço externo (cobranças, boletos)
 - Solicitação do prompt de sistema ou de outra identidade
+
+### Tratamento de mídia
+
+Mensagens de áudio, vídeo, imagem, documento ou sticker são identificadas pelo tipo do payload Z-API e recebem uma resposta automática informando que o bot processa apenas texto. O agente não é acionado para esse tipo de conteúdo.
+
+### Resiliência do webhook
+
+O Z-API pode reenviar o mesmo webhook quando o servidor demora a responder. Para evitar respostas duplicadas, cada mensagem inbound é gravada com o `messageId` do Z-API (campo único no banco). Webhooks com `messageId` já registrado são descartados imediatamente, antes de qualquer chamada ao agente.
 
 ## Stack Tecnológica
 
@@ -113,7 +125,7 @@ doacao-whatsapp/
 │   │   ├── message.py           # Model Message
 │   │   └── ong.py               # Model Ong (ONGs parceiras)
 │   ├── schemas/
-│   │   ├── webhook.py           # Schemas do payload Z-API
+│   │   ├── webhook.py           # Schemas do payload Z-API (text, audio, video, image, document, sticker)
 │   │   └── ong.py               # Schemas de ONG (create/update/response)
 │   ├── services/
 │   │   ├── zapi_service.py      # Envio de mensagens via Z-API
@@ -131,13 +143,13 @@ doacao-whatsapp/
 │   └── seed_ongs.py             # Seed de ONGs a partir de ONGS.json
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations (001 → 007)
+│   └── versions/                # Migrations (001 → 011)
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── ONGS.json                # Dados originais (19 ONGs)
 │   ├── ONGS_v2.csv              # Dados ampliados (52 ONGs)
 │   └── seed_ongs_v2.sql         # Seed aplicado em 2026-02-28
-├── tests/                         # 138 testes automatizados (99% cobertura)
+├── tests/                         # 144 testes automatizados (99% cobertura)
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -334,7 +346,7 @@ uvicorn app.main:app --reload --port 80
 
 ## Testes
 
-O projeto possui **140 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **144 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ### Executar os testes
 
