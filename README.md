@@ -35,82 +35,7 @@ O atendimento é personalizado: na primeira mensagem, o bot **se apresenta** (mi
                                     └────────────┘
 ```
 
-### Fluxo de uma mensagem
-
-1. Usuário envia mensagem no WhatsApp
-2. Z-API recebe e dispara webhook `POST /api/webhook`
-3. FastAPI recebe o payload e aplica filtros sequenciais:
-   - Mensagens `fromMe` ou de grupo → ignoradas silenciosamente
-   - **Mídia** (áudio, vídeo, imagem, documento, sticker) → envia aviso ao usuário e encerra
-   - **Rate limit** excedido (≥ 5 msgs/60s do mesmo número, via banco de dados) → ignorado silenciosamente
-   - Sem texto → ignorado silenciosamente
-   - **Bot detectado** por auto-identificação na mensagem → ignorado silenciosamente
-   - `messageId` já processado → descartado (deduplicação de webhook duplicado pelo Z-API)
-   - **Circuit breaker OOS** ativado (3 respostas consecutivas "Fora do Escopo" em 1 min) → ignorado silenciosamente
-4. Busca/cria sessão de conversa no PostgreSQL
-5. Salva a mensagem inbound com o `messageId` do Z-API (garante idempotência)
-6. Recupera histórico das últimas mensagens da conversa (memória conversacional)
-7. Agente LangGraph processa a mensagem:
-   - **Profile** — verifica/coleta o nome do usuário nas primeiras interações:
-     - **1ª mensagem** (`greeting`): apresenta o DoaZap, reconhece brevemente a intenção e pede o nome
-     - **2ª mensagem** (`collecting_name`): pede o nome novamente se não foi fornecido
-     - Nome extraído via LLM (`EXTRACT_NAME_PROMPT`) e persistido no banco
-   - **Classify** — GPT-4.1-mini identifica intent e sentimento (com guard-rails)
-   - **Retrieve** — FAISS busca interações similares na base RAG
-   - **Enrich** — Consulta ONGs parceiras no banco conforme o intent
-   - **Generate** — GPT-4.1-mini gera resposta contextualizada com dados reais das ONGs
-8. Resposta é salva no banco e enviada via Z-API
-
-### Grafo do Agente LangGraph
-
-![Grafo do Agente DoaZap](docs/agent_graph.png)
-
-O grafo possui dois caminhos a partir do nó `profile`:
-
-- **Fluxo de coleta de nome** (1ª e 2ª mensagem): `profile` → `profile_response` → `END`
-- **Fluxo principal** (usuário já identificado): `profile` → `classify` → `retrieve` → `enrich` → `generate` → `END`
-
-### Intents suportados
-
-| Intent | Descrição |
-|--------|-----------|
-| Quero Doar | Doação via PIX, transferência, roupas, alimentos |
-| Busco Ajuda/Beneficiário | Usuário precisa de assistência |
-| Voluntariado | Interesse em ser voluntário |
-| Parceria Corporativa | Empresa buscando parceria |
-| Informação Geral | Perguntas sobre as ONGs parceiras |
-| Ambíguo | Mensagem sem intenção clara relacionada à plataforma |
-| Fora do Escopo | Mensagem não relacionada a doações, ONGs ou assistência social |
-
-### Guard-rails e segurança
-
-O sistema possui quatro camadas de proteção independentes no webhook, mais uma camada no agente:
-
-**Camada 1 — Rate limiting persistente via banco de dados (webhook):** Máximo de 5 mensagens por 60 segundos por número de telefone, contabilizadas diretamente na tabela `messages`. Por ser baseado no banco de dados, o limite sobrevive a reinicializações do processo (ex.: novos deploys no Render). Excedido o limite, a mensagem é descartada silenciosamente, sem resposta.
-
-**Camada 2 — Detecção de bot por auto-identificação (webhook):** Mensagens que contêm frases típicas de assistentes virtuais ou CRMs automatizados são descartadas silenciosamente antes de qualquer processamento pelo agente. Padrões detectados: "sou a analista virtual", "sou um assistente virtual", "atendente virtual da…", "link de pagamento gerado", "qual é o seu nível de satisfação", "número de protocolo", entre outros.
-
-**Camada 3 — Circuit breaker por "Fora do Escopo" consecutivo (webhook):** Se as últimas 3 respostas outbound para um número forem todas classificadas como "Fora do Escopo" dentro de 1 minuto, a próxima mensagem desse número é silenciada sem chamar o agente e sem enviar resposta. Isso interrompe loops onde um bot externo continua respondendo após múltiplas recusas.
-
-**Camada 4 — Limite de tentativas de coleta de nome (agente):** O estágio de coleta do nome do usuário tem no máximo 3 tentativas. Após esse limite, o bot prossegue o atendimento normalmente sem nome, evitando o loop infinito caso um bot externo não consiga fornecer uma resposta válida.
-
-**Guard-rails do agente (LLM):** Mensagens classificadas como "Fora do Escopo" recebem uma resposta gentil de redirecionamento, sem acesso ao banco de ONGs.
-
-Padrões bloqueados automaticamente:
-
-- Perguntas de cultura pop, esportes, ciência geral, política
-- Tentativas de **prompt injection** ("ignore suas instruções…")
-- Tentativas de **jailbreak** ("DAN", "modo sem restrições"…)
-- Impersonação de outro bot ou serviço externo (cobranças, boletos)
-- Solicitação do prompt de sistema ou de outra identidade
-
-### Tratamento de mídia
-
-Mensagens de áudio, vídeo, imagem, documento ou sticker são identificadas pelo tipo do payload Z-API e recebem uma resposta automática informando que o bot processa apenas texto. O agente não é acionado para esse tipo de conteúdo.
-
-### Resiliência do webhook
-
-O Z-API pode reenviar o mesmo webhook quando o servidor demora a responder. Para evitar respostas duplicadas, cada mensagem inbound é gravada com o `messageId` do Z-API (campo único no banco). Webhooks com `messageId` já registrado são descartados imediatamente, antes de qualquer chamada ao agente.
+Detalhes completos em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): fluxo de mensagens, grafo LangGraph, intents suportados e guard-rails de segurança.
 
 ## Stack Tecnológica
 
@@ -171,9 +96,15 @@ doacao-whatsapp/
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   └── seed_ongs_v2.sql         # Seed de 52 ONGs aplicado em 2026-02-28
-├── tests/                         # 162 testes automatizados (99% cobertura)
+├── tests/                       # 162 testes automatizados (99% cobertura)
 ├── docs/
-│   └── agent_graph.png          # Diagrama visual do grafo LangGraph
+│   ├── agent_graph.png          # Diagrama visual do grafo LangGraph
+│   ├── ARCHITECTURE.md          # Arquitetura, fluxo e guard-rails
+│   ├── API.md                   # Referência de endpoints
+│   ├── CONFIGURATION.md         # Setup, variáveis de ambiente e RLS
+│   ├── DEPLOY.md                # Deploy no Render e New Relic
+│   ├── TESTING.md               # Testes unitários e de carga
+│   └── OBSERVABILITY.md         # Logs, psql timezone e views diagnósticas
 ├── docker-compose.yml           # App + PostgreSQL
 ├── Dockerfile                   # Python 3.13-slim
 ├── alembic.ini
@@ -182,331 +113,30 @@ doacao-whatsapp/
 └── .env.example
 ```
 
-## Pré-requisitos
-
-- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/)
-- Conta na [OpenAI](https://platform.openai.com/) com API key
-- Conta no [Z-API](https://www.z-api.io/) com instância configurada
-
-## Como Executar
-
-### 1. Clone o repositório
+## Quick Start
 
 ```bash
 git clone https://github.com/leonardosouza/doacao-whatsapp.git
 cd doacao-whatsapp
-```
-
-### 2. Configure as variáveis de ambiente
-
-```bash
 cp .env.example .env.development
-```
-
-Edite o `.env.development` com suas credenciais:
-
-```env
-# App
-APP_NAME=DoaZap
-APP_ENV=development
-DEBUG=True
-API_KEY=sua-api-key-secreta
-
-# OpenAI
-OPENAI_API_KEY=sk-sua-chave-openai
-OPENAI_MODEL=gpt-4.1-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_TEMPERATURE=0.3
-
-# Z-API
-ZAPI_INSTANCE_ID=seu-instance-id
-ZAPI_TOKEN=seu-token
-ZAPI_CLIENT_TOKEN=seu-client-token
-
-# Conversation
-CONVERSATION_HISTORY_LIMIT=10
-
-# Database
-DATABASE_URL=postgresql://doacao_user:doacao_pass@db:5432/doacao_db
-
-# PostgreSQL (usado pelo docker-compose)
-POSTGRES_USER=doacao_user
-POSTGRES_PASSWORD=doacao_pass
-POSTGRES_DB=doacao_db
-```
-
-> A aplicação carrega automaticamente o arquivo `.env.{APP_ENV}` conforme o valor de `APP_ENV` (default: `development`).
-
-### 3. Inicie os containers
-
-```bash
+# edite .env.development com suas credenciais
 docker compose up --build
-```
-
-A aplicação estará disponível em `http://localhost:80`.
-
-### 4. Execute as migrations
-
-```bash
 docker compose exec app alembic upgrade head
 ```
 
-### 5. Configure o webhook no Z-API
-
-No painel do Z-API, configure a URL de webhook para:
-
-```
-https://seu-dominio.com/api/webhook
-```
-
-> Para desenvolvimento local, utilize [ngrok](https://ngrok.com/) ou similar para expor a porta 80.
-
-## Endpoints da API
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/health` | Health check (verifica banco de dados e Z-API) |
-| `POST` | `/api/health` | Health check via POST (para monitor sintético New Relic) |
-| `POST` | `/api/webhook` | Recebe mensagens do Z-API |
-| `GET` | `/api/ongs` | Lista todas as ONGs parceiras |
-| `GET` | `/api/ongs/{id}` | Retorna uma ONG pelo ID |
-| `POST` | `/api/ongs` | Cadastra nova ONG parceira 🔒 |
-| `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG 🔒 |
-| `DELETE` | `/api/ongs/{id}` | Remove uma ONG 🔒 |
-| `GET` | `/docs` | Documentação Swagger (apenas quando `DEBUG=True`) |
-| `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
-
-> 🔒 Rotas protegidas por API Key. Envie o header `X-API-Key` com a chave configurada em `API_KEY`.
-
-## Variáveis de Ambiente
-
-| Variável | Descrição | Obrigatória | Default |
-|----------|-----------|:-----------:|---------|
-| `APP_NAME` | Nome da aplicação | Sim | — |
-| `APP_ENV` | Ambiente (`development`, `production`) | Não | `development` |
-| `DEBUG` | Habilita Swagger e modo debug | Não | `False` |
-| `API_KEY` | Chave para proteger rotas de escrita (ONGs) | Sim | — |
-| `OPENAI_API_KEY` | Chave da API OpenAI | Sim | — |
-| `OPENAI_MODEL` | Modelo LLM utilizado | Sim | — |
-| `OPENAI_EMBEDDING_MODEL` | Modelo de embeddings | Sim | — |
-| `OPENAI_TEMPERATURE` | Temperatura de geração | Não | `0.3` |
-| `ZAPI_INSTANCE_ID` | ID da instância Z-API | Sim | — |
-| `ZAPI_TOKEN` | Token de autenticação Z-API | Sim | — |
-| `ZAPI_CLIENT_TOKEN` | Client token do Z-API | Sim | — |
-| `DATABASE_URL` | URL de conexão PostgreSQL | Sim | — |
-| `CONVERSATION_HISTORY_LIMIT` | Número máximo de mensagens no histórico do agente | Não | `10` |
-| `POSTGRES_USER` | Usuário PostgreSQL (docker-compose) | Não | `doacao_user` |
-| `POSTGRES_PASSWORD` | Senha PostgreSQL (docker-compose) | Não | `doacao_pass` |
-| `POSTGRES_DB` | Nome do banco (docker-compose) | Não | `doacao_db` |
-| `NEW_RELIC_LICENSE_KEY` | Chave de licença do New Relic (Ingest - License) | Sim | — |
-| `NEW_RELIC_APP_NAME` | Nome da aplicação no New Relic | Não | `DoaZap` |
-| `NEW_RELIC_LOG` | Destino dos logs do agente New Relic | Não | `stdout` |
-| `NEW_RELIC_LOG_LEVEL` | Nível de log do agente New Relic | Não | `info` |
-| `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED` | Habilita rastreamento distribuído | Não | `true` |
-
-## Segurança do Banco de Dados
-
-### Row Level Security (RLS) no Supabase
-
-Todas as tabelas do schema `public` têm **Row Level Security habilitado** para bloquear acesso direto via API REST do Supabase (PostgREST), que usa o role `anon` por padrão.
-
-| Tabela | RLS | Política `anon` |
-|--------|:---:|-----------------|
-| `ongs` | ✅ | SELECT permitido (dado público, consistente com GET /api/ongs) |
-| `conversations` | ✅ | Nenhuma — bloqueado completamente |
-| `messages` | ✅ | Nenhuma — bloqueado completamente |
-| `alembic_version` | ✅ | Nenhuma — bloqueado completamente |
-
-O app FastAPI conecta como `postgres` (superusuário) e **não é afetado** pelo RLS — superusuários contornam RLS por padrão no PostgreSQL. O Alembic também opera como superusuário e continua executando migrations normalmente.
-
-## Observabilidade e Troubleshooting
-
-O banco de dados armazena todos os timestamps em **UTC** (padrão correto para sistemas distribuídos). Para facilitar a correlação de eventos durante incident response, a equipe (fuso horário: São Paulo, UTC-3) conta com três ferramentas de exibição em horário local:
-
-### Logs do Render
-
-Os logs da aplicação são formatados em horário de São Paulo via `_SPFormatter` em `app/main.py`. Exemplo:
-
-```
-2026-02-28 14:46:19,475 [INFO] app.api.routes.webhook: Mensagem processada
-# (horário SP — armazenado como 17:46:19 UTC no banco)
-```
-
-### psql com timezone SP
-
-O script `scripts/psql-production.sh` conecta ao banco de produção com `timezone=America/Sao_Paulo`. Todos os campos `timestamptz` são exibidos automaticamente em horário SP, sem precisar de `AT TIME ZONE` manual.
-
-```bash
-# Conectar ao banco
-./scripts/psql-production.sh
-
-# Executar query direta
-./scripts/psql-production.sh -c "SELECT * FROM v_messages_sp LIMIT 10;"
-```
-
-### Exportar diagrama do grafo LangGraph
-
-O script `scripts/generate_graph.py` gera um PNG do grafo do agente usando a API Mermaid.ink integrada ao LangGraph.
-
-```bash
-# Executar a partir da raiz do projeto
-python scripts/generate_graph.py
-# Saída: generate_graph.png (na pasta atual)
-```
-
-### Views diagnósticas no banco
-
-Disponíveis no **Supabase Table Editor** e via psql para incident response rápido:
-
-| View | Colunas principais |
-|------|--------------------|
-| `v_messages_sp` | `phone_number`, `direction`, `content`, `intent`, `created_at_sp` |
-| `v_conversations_sp` | `phone_number`, `status`, `user_name`, `started_at_sp`, `last_message_at_sp` |
-
-> Acesso restrito ao superusuário `postgres`. Nenhum GRANT concedido a `anon` ou `authenticated`.
-
-## Deploy em Produção
-
-A aplicação está hospedada no [Render](https://render.com/) com banco de dados [Supabase](https://supabase.com/).
-
-### Infraestrutura
-
-| Serviço | Plataforma |
-|---------|------------|
-| Aplicação (FastAPI) | Render (Web Service) |
-| Banco de Dados (PostgreSQL) | Supabase (Connection Pooler) |
-| Monitoramento / APM | New Relic |
-
-### Configuração
-
-1. Crie um Web Service no Render apontando para este repositório
-2. Configure as variáveis de ambiente no painel do Render (mesmas do `.env.production`)
-3. Para o `DATABASE_URL`, utilize a connection string do Supabase (pooler)
-4. Configure as variáveis `NEW_RELIC_LICENSE_KEY` e `NEW_RELIC_APP_NAME` no Render
-5. Configure o webhook no Z-API apontando para `https://doacao-whatsapp.onrender.com/api/webhook`
-
-O agente New Relic é iniciado automaticamente via `newrelic-admin run-program` (definido no `Dockerfile`), sem necessidade de arquivo de configuração no repositório.
-
-### Health Check
-
-Verifique o status da aplicação e conexão com o banco:
-
-```bash
-curl https://doacao-whatsapp.onrender.com/api/health
-# {"status": "ok", "database": "connected", "zapi": "connected"}
-```
-
-### Monitoramento (New Relic APM)
-
-Acesse as métricas de performance, erros e throughput em:
-
-| Ambiente | URL |
-|----------|-----|
-| Produção (`DoaZap`) | [one.newrelic.com → APM & Services → DoaZap](https://one.newrelic.com/apm) |
-| Desenvolvimento (`DoaZap (Dev)`) | [one.newrelic.com → APM & Services → DoaZap (Dev)](https://one.newrelic.com/apm) |
-
-> O ambiente de desenvolvimento só aparece no New Relic enquanto a aplicação local estiver rodando com as variáveis `NEW_RELIC_*` configuradas no `.env.development`.
-
-### Monitor Sintético (New Relic Synthetics)
-
-O endpoint `POST /api/health` está disponível para uso com o [New Relic Synthetics](https://one.newrelic.com/synthetics):
-
-```
-https://doacao-whatsapp.onrender.com/api/health
-Método: POST
-```
-
-## Desenvolvimento Local
-
-```bash
-# Subir apenas o banco de dados
-docker compose up db -d
-
-# Instalar dependências localmente
-pip install -r requirements.txt
-
-# Rodar a aplicação
-uvicorn app.main:app --reload --port 80
-```
-
-## Testes
-
-O projeto possui **162 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
-
-### Executar os testes
-
-```bash
-# Instalar dependências (inclui pytest, pytest-asyncio, pytest-cov)
-pip install -r requirements.txt
-
-# Rodar todos os testes
-pytest
-
-# Com relatório de cobertura
-pytest --cov=app --cov-report=term-missing
-
-# Gerar relatório HTML de cobertura
-pytest --cov=app --cov-report=html
-# Abrir htmlcov/index.html
-```
-
-### Estrutura dos testes
-
-```
-tests/
-├── conftest.py                        # Fixtures globais (DB, client, dados)
-├── test_schemas/
-│   ├── test_webhook_schemas.py        # Validação dos payloads Z-API
-│   └── test_ong_schemas.py            # Validação dos schemas de ONG
-├── test_security/
-│   └── test_require_api_key.py        # Autenticação por API Key
-├── test_services/
-│   ├── test_conversation_service.py   # Gerenciamento de conversas
-│   ├── test_ong_service.py            # CRUD de ONGs
-│   └── test_zapi_service.py           # Integração Z-API (mock)
-├── test_api/
-│   ├── test_health.py                 # Health check endpoint
-│   ├── test_ong_routes.py             # Rotas CRUD de ONGs
-│   └── test_webhook.py                # Webhook do WhatsApp
-├── test_agent/
-│   ├── test_nodes.py                  # Nós do LangGraph (profile, classify, retrieve, enrich, generate)
-│   └── test_graph.py                  # Grafo compilado e fluxo end-to-end
-└── test_rag/
-    ├── test_loader.py                 # Carregamento da base de conhecimento
-    └── test_retriever.py              # Vectorstore FAISS e busca por similaridade
-```
-
-### Cobertura por módulo
-
-| Módulo | Cobertura |
-|--------|:---------:|
-| agent (graph, nodes, prompts, state) | 100% |
-| api/routes (health, webhook, ong) | 100% |
-| schemas (webhook, ong) | 100% |
-| security | 100% |
-| services (conversation, ong, zapi) | 100% |
-| rag (loader, retriever) | 100% |
-| config, main | 100% |
-| models (conversation, message, ong) | 100% |
-
-## Testes de Carga
-
-Scripts e relatórios de stress test mantidos no repositório [doazap-stress-test](https://github.com/leonardosouza/doazap-stress-test) (Locust).
-
-| Cenário | Markdown | HTML interativo |
-|---------|----------|-----------------|
-| Consolidado (análise geral + ponto de ruptura) | [report_consolidado.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_consolidado.md) | — |
-| 10 usuários simultâneos | [report_10u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_10u.md) | [report_10u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_10u.html) |
-| 20 usuários simultâneos | [report_20u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_20u.md) | [report_20u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_20u.html) |
-| 30 usuários simultâneos | [report_30u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_30u.md) | [report_30u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_30u.html) |
-| 50 usuários simultâneos | [report_50u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_50u.md) | [report_50u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_50u.html) |
-| 100 usuários simultâneos | [report_100u.md](https://github.com/leonardosouza/doazap-stress-test/blob/main/reports/markdown/report_100u.md) | [report_100u.html](https://leonardosouza.github.io/doazap-stress-test/reports/html/report_100u.html) |
-
-> O ponto de ruptura identificado é entre **20 e 30 usuários simultâneos** no plano Free Tier do Render.
-
-## Changelog
-
-Todas as versões e mudanças estão documentadas em [CHANGELOG.md](CHANGELOG.md).
+Para instruções detalhadas de configuração e variáveis de ambiente, consulte [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+## Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Fluxo de mensagens, grafo LangGraph, intents e guard-rails |
+| [API.md](docs/API.md) | Referência completa dos endpoints |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Pré-requisitos, setup, variáveis de ambiente e RLS |
+| [DEPLOY.md](docs/DEPLOY.md) | Deploy no Render, monitoramento New Relic e synthetics |
+| [TESTING.md](docs/TESTING.md) | Testes unitários, cobertura e testes de carga |
+| [OBSERVABILITY.md](docs/OBSERVABILITY.md) | Logs, psql timezone e views diagnósticas |
+| [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
 
 ## Equipe
 
