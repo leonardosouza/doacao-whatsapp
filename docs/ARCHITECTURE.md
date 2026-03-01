@@ -103,15 +103,26 @@ Padrões bloqueados automaticamente:
 
 ## Banco de Dados — Estratégia de Índices
 
-A tabela `messages` é a mais consultada do sistema: 4 queries distintas são executadas a cada mensagem recebida. Os índices foram criados explicitamente (migration 015) pois o PostgreSQL não indexa colunas FK automaticamente.
+A tabela `messages` é a mais consultada do sistema. Os índices foram criados explicitamente via migrations pois o PostgreSQL não indexa colunas FK automaticamente. Os índices estão divididos em dois grupos: **bot** (queries por `conversation_id`) e **dashboard** (queries analíticas por data e intent).
+
+### Bot (migration 015)
 
 | Índice | Tabela | Colunas | Tipo | Queries beneficiadas |
 |--------|--------|---------|------|---------------------|
 | `ix_messages_conversation_direction_created` | `messages` | `(conversation_id, direction, created_at DESC)` | B-tree composto | `get_conversation_history`, última msg do bot, `count_recent_inbound`, `has_consecutive_out_of_scope` |
 | `ix_conversations_phone_active` | `conversations` | `(phone_number) WHERE status = 'active'` | B-tree parcial | `get_or_create_conversation` |
-| `ix_conversations_phone_number` | `conversations` | `(phone_number)` | B-tree | criado via `index=True` no modelo |
+| `ix_conversations_phone_number` | `conversations` | `(phone_number)` | B-tree | criado via `index=True` |
 | `ix_messages_zapi_message_id` | `messages` | `(zapi_message_id)` | B-tree único | deduplicação de webhooks |
 | `ix_ongs_category`, `ix_ongs_state` | `ongs` | `(category)`, `(state)` | B-tree | filtros de ONGs na API e no agente |
+
+### Dashboard — doazap-dashboard (migration 016)
+
+| Índice | Tabela | Colunas | Tipo | Queries beneficiadas |
+|--------|--------|---------|------|---------------------|
+| `ix_messages_created_at` | `messages` | `(created_at DESC)` | B-tree | `kpi_messages_today`, `volume_by_hour_24h` |
+| `ix_messages_outbound_intent_created` | `messages` | `(created_at DESC) WHERE direction='outbound' AND intent IS NOT NULL` | B-tree parcial | `kpi_top_intent_today`, `intent_distribution`, `intent_evolution_weekly`, `sentiment_by_intent`, `oos_rate_daily` |
+| `ix_conversations_started_at` | `conversations` | `(started_at DESC)` | B-tree | `kpi_conversations_today`, `kpi_unique_users_today`, `conversations_per_day`, `guardrail_events_summary` |
+| `ix_conversations_last_message_at` | `conversations` | `(last_message_at DESC)` | B-tree | `recent_conversations` (ORDER BY + LIMIT 10) |
 
 ## Tratamento de Mídia
 

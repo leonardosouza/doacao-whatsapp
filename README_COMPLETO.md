@@ -622,6 +622,12 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 
 ## Changelog
 
+### [1.6.2] - 2026-03-01
+
+**Performance**
+- Migration 016: 4 índices para queries analíticas do dashboard — `ix_messages_created_at`, `ix_messages_outbound_intent_created` (parcial), `ix_conversations_started_at`, `ix_conversations_last_message_at`
+- Cobre 9 queries do doazap-dashboard sem índice: KPIs de hoje, volume por hora, intents, guard-rails e conversas recentes
+
 ### [1.6.1] - 2026-03-01
 
 **Performance**

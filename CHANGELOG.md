@@ -5,6 +5,25 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.6.2] - 2026-03-01
+
+### Performance
+- **Migration 016 — Índices para queries analíticas do dashboard** (`alembic/versions/016_add_dashboard_indexes.py`):
+  - `ix_messages_created_at`: B-tree em `messages(created_at DESC)` — cobre
+    `kpi_messages_today()` e `volume_by_hour_24h()` que filtram por data sem `conversation_id`.
+  - `ix_messages_outbound_intent_created`: índice parcial em `messages(created_at DESC)
+    WHERE direction = 'outbound' AND intent IS NOT NULL` — cobre 5 queries de intents e
+    guard-rails: `kpi_top_intent_today`, `intent_distribution`, `intent_evolution_weekly`,
+    `sentiment_by_intent`, `oos_rate_daily`.
+  - `ix_conversations_started_at`: B-tree em `conversations(started_at DESC)` — cobre
+    `kpi_conversations_today`, `kpi_unique_users_today`, `conversations_per_day`,
+    `guardrail_events_summary`.
+  - `ix_conversations_last_message_at`: B-tree em `conversations(last_message_at DESC)` —
+    index scan com early stop para `recent_conversations() ORDER BY LIMIT 10`.
+- Modelos SQLAlchemy atualizados com `__table_args__` para todos os novos índices.
+
+---
+
 ## [1.6.1] - 2026-03-01
 
 ### Performance
