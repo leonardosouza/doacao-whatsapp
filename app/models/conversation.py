@@ -18,6 +18,19 @@ class Conversation(Base):
             "phone_number",
             postgresql_where=text("status = 'active'"),
         ),
+        # Cobre queries de KPI e gráficos por data:
+        # kpi_conversations_today, kpi_unique_users_today, conversations_per_day,
+        # guardrail_events_summary
+        Index(
+            "ix_conversations_started_at",
+            text("started_at DESC"),
+        ),
+        # Cobre recent_conversations() ORDER BY last_message_at DESC LIMIT 10
+        # — index scan com early stop em vez de sort completo
+        Index(
+            "ix_conversations_last_message_at",
+            text("last_message_at DESC"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
