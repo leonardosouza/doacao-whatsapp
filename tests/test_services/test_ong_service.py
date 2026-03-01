@@ -58,6 +58,43 @@ class TestListOngs:
         names = [o.name for o in result]
         assert names == sorted(names)
 
+    def test_filter_q_by_name(self, db_session, multiple_ongs_in_db):
+        result = ong_service.list_ongs(db_session, q="Animais")
+        assert len(result) == 1
+        assert result[0].name == "ONG Animais C"
+
+    def test_filter_q_by_subcategory(self, db_session):
+        from app.models.ong import Ong as OngModel
+        ong = OngModel(
+            name="Floresta Viva",
+            category="Meio Ambiente",
+            city="Manaus",
+            state="AM",
+            subcategory="preservacao da floresta amazonica",
+        )
+        db_session.add(ong)
+        db_session.commit()
+        result = ong_service.list_ongs(db_session, q="amazonica")
+        assert any(o.name == "Floresta Viva" for o in result)
+
+    def test_filter_q_no_match(self, db_session, multiple_ongs_in_db):
+        result = ong_service.list_ongs(db_session, q="xyznotfound999")
+        assert len(result) == 0
+
+    def test_filter_name_partial(self, db_session, multiple_ongs_in_db):
+        result = ong_service.list_ongs(db_session, name="Fome")
+        assert len(result) == 1
+        assert result[0].name == "ONG Fome A"
+
+    def test_filter_name_no_match(self, db_session):
+        result = ong_service.list_ongs(db_session, name="inexistente_xyz")
+        assert len(result) == 0
+
+    def test_filter_q_escapes_percent_wildcard(self, db_session, multiple_ongs_in_db):
+        # "%" must be treated as literal, not SQL wildcard
+        result = ong_service.list_ongs(db_session, q="%")
+        assert len(result) == 0
+
 
 class TestUpdateOng:
     def test_partial_update(self, db_session, sample_ong_in_db):

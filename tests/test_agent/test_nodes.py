@@ -4,7 +4,9 @@ import pytest
 
 from app.agent.nodes import (
     _bot_asked_for_name,
+    _extract_category_hint,
     _extract_json,
+    _extract_state_from_text,
     _format_ong,
     classify_node,
     generate_node,
@@ -463,3 +465,102 @@ class TestRouteProfile:
 
     def test_returns_classify_when_complete(self):
         assert route_profile(self._state("complete")) == "classify"
+
+
+# ── _extract_state_from_text ─────────────────────────────────────────
+class TestExtractStateFromText:
+    def test_explicit_uf_code(self):
+        assert _extract_state_from_text("Tem alguma ONG em SP?") == "SP"
+
+    def test_explicit_uf_code_lowercase_text(self):
+        # texto digitado em minúsculo, mas o código UF aparece em maiúsculo
+        assert _extract_state_from_text("Quais ONGs existem em RJ?") == "RJ"
+
+    def test_city_florianopolis_to_sc(self):
+        assert _extract_state_from_text("Estou em Florianópolis") == "SC"
+
+    def test_city_piracicaba_to_sp(self):
+        assert _extract_state_from_text("Sou de Piracicaba") == "SP"
+
+    def test_city_curitiba_to_pr(self):
+        assert _extract_state_from_text("Estou em Curitiba") == "PR"
+
+    def test_no_location_returns_none(self):
+        assert _extract_state_from_text("Quero ajudar") is None
+
+    def test_generic_message_no_false_positive(self):
+        assert _extract_state_from_text("Oi, como funciona o DoaZap?") is None
+
+
+# ── _extract_category_hint ───────────────────────────────────────────
+class TestExtractCategoryHint:
+    def test_lgbt(self):
+        assert _extract_category_hint("Tem algum lgbt em SP?") == "LGBTQIA+"
+
+    def test_meio_ambiente(self):
+        assert _extract_category_hint("Quero apoiar causa ambiental") == "Meio Ambiente"
+
+    def test_educacao(self):
+        assert _extract_category_hint("Quero ajudar com educação") == "Educação"
+
+    def test_fome(self):
+        assert _extract_category_hint("Tem alguma ONG contra a fome?") == "Fome"
+
+    def test_mulheres(self):
+        assert _extract_category_hint("Quero ajudar mulheres em situação de risco") == "Mulheres"
+
+    def test_no_match_returns_none(self):
+        assert _extract_category_hint("Quero fazer uma doação") is None
+
+    def test_generic_question_no_false_positive(self):
+        assert _extract_category_hint("Como funciona o DoaZap?") is None
+
+
+# ── enrich_node contextual (estado + categoria) ──────────────────────
+class TestEnrichNodeContextual:
+    _BASE = {
+        "conversation_history": "",
+        "sentiment": "",
+        "rag_context": [],
+        "ong_context": "",
+        "response": "",
+    }
+
+    def test_informacao_geral_filters_by_state(self, db_session, multiple_ongs_in_db):
+        enrich = make_enrich_node(db_session)
+        state = {**self._BASE, "user_message": "Quais ONGs existem em SP?", "intent": "Informação Geral"}
+        result = enrich(state)
+        assert "ONG Saúde B" in result["ong_context"]          # SP
+        assert "ONG Assistência D" in result["ong_context"]    # SP
+        assert "ONG Fome A" not in result["ong_context"]       # RJ
+
+    def test_informacao_geral_filters_by_category(self, db_session, multiple_ongs_in_db):
+        enrich = make_enrich_node(db_session)
+        state = {**self._BASE, "user_message": "Quero saber sobre saude", "intent": "Informação Geral"}
+        result = enrich(state)
+        assert "ONG Saúde B" in result["ong_context"]
+        assert "ONG Fome A" not in result["ong_context"]
+
+    def test_informacao_geral_combined_category_and_state(self, db_session, multiple_ongs_in_db):
+        enrich = make_enrich_node(db_session)
+        state = {**self._BASE, "user_message": "Tem algum saude em SP?", "intent": "Informação Geral"}
+        result = enrich(state)
+        assert "ONG Saúde B" in result["ong_context"]          # Saúde + SP ✓
+        assert "ONG Assistência D" not in result["ong_context"]  # SP, mas não Saúde
+        assert "ONG Fome A" not in result["ong_context"]       # nem Saúde nem SP
+
+    def test_ambiguo_filters_by_state_but_not_category(self, db_session, multiple_ongs_in_db):
+        enrich = make_enrich_node(db_session)
+        state = {**self._BASE, "user_message": "Quais ONGs existem em SP?", "intent": "Ambíguo"}
+        result = enrich(state)
+        assert "ONG Saúde B" in result["ong_context"]          # SP
+        assert "ONG Assistência D" in result["ong_context"]    # SP
+        assert "ONG Fome A" not in result["ong_context"]       # RJ
+
+    def test_no_hint_returns_all_active(self, db_session, multiple_ongs_in_db):
+        enrich = make_enrich_node(db_session)
+        state = {**self._BASE, "user_message": "Quero ajudar", "intent": "Informação Geral"}
+        result = enrich(state)
+        assert "ONG Fome A" in result["ong_context"]
+        assert "ONG Animais C" in result["ong_context"]
+        assert "ONG Inativa F" not in result["ong_context"]

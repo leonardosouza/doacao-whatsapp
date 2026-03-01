@@ -43,6 +43,25 @@ class TestListOngs:
         data = resp.json()
         assert len(data) == 2
 
+    def test_filter_q(self, client, multiple_ongs_in_db):
+        resp = client.get("/api/ongs?q=Animais")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "ONG Animais C"
+
+    def test_filter_name(self, client, multiple_ongs_in_db):
+        resp = client.get("/api/ongs?name=Fome")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "ONG Fome A"
+
+    def test_filter_q_returns_empty_on_no_match(self, client, multiple_ongs_in_db):
+        resp = client.get("/api/ongs?q=xyznotfound999")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
 
 class TestGetOng:
     def test_found(self, client, sample_ong_in_db):

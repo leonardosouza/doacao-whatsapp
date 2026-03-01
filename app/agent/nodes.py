@@ -22,6 +22,118 @@ logger = logging.getLogger(__name__)
 
 MAX_PROFILE_RETRIES = 3  # tentativas máximas de coleta de nome antes de prosseguir sem ele
 
+_ESTADOS_BR = {
+    "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO",
+    "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR",
+    "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
+}
+
+_CITY_TO_STATE: dict[str, str] = {
+    "são paulo": "SP", "campinas": "SP", "santos": "SP", "sorocaba": "SP",
+    "ribeirão preto": "SP", "osasco": "SP", "piracicaba": "SP", "guarulhos": "SP",
+    "rio de janeiro": "RJ", "niterói": "RJ", "petrópolis": "RJ",
+    "belo horizonte": "MG", "uberlândia": "MG", "contagem": "MG",
+    "salvador": "BA", "feira de santana": "BA",
+    "fortaleza": "CE", "caucaia": "CE",
+    "recife": "PE", "olinda": "PE", "caruaru": "PE",
+    "manaus": "AM",
+    "porto alegre": "RS", "caxias do sul": "RS",
+    "curitiba": "PR", "londrina": "PR", "maringá": "PR",
+    "brasília": "DF",
+    "belém": "PA",
+    "goiânia": "GO",
+    "florianópolis": "SC", "joinville": "SC", "blumenau": "SC",
+    "natal": "RN",
+    "maceió": "AL",
+    "aracaju": "SE",
+    "joão pessoa": "PB",
+    "macapá": "AP",
+    "porto velho": "RO",
+    "boa vista": "RR",
+    "palmas": "TO",
+    "são luís": "MA",
+    "teresina": "PI",
+    "campo grande": "MS",
+    "cuiabá": "MT",
+    "vitória": "ES",
+    "rio branco": "AC",
+}
+
+_KEYWORD_CATEGORY_MAP: dict[str, str] = {
+    "lgbt": "LGBTQIA+",
+    "lgbtqia": "LGBTQIA+",
+    "gay": "LGBTQIA+",
+    "lésbica": "LGBTQIA+",
+    "lesbica": "LGBTQIA+",
+    "trans ": "LGBTQIA+",
+    "transgênero": "LGBTQIA+",
+    "transgenero": "LGBTQIA+",
+    "meio ambiente": "Meio Ambiente",
+    "ambiental": "Meio Ambiente",
+    "ecologia": "Meio Ambiente",
+    "ecológic": "Meio Ambiente",
+    "sustentabilidade": "Meio Ambiente",
+    "animal": "Animais",
+    "pets": "Animais",
+    "criança": "Educação",
+    "criancas": "Educação",
+    "educação": "Educação",
+    "educacao": "Educação",
+    "escola": "Educação",
+    "fome": "Fome",
+    "alimento": "Fome",
+    "alimentação": "Fome",
+    "alimentacao": "Fome",
+    "comida": "Fome",
+    "mulher": "Mulheres",
+    "mulheres": "Mulheres",
+    "feminino": "Mulheres",
+    "feminism": "Mulheres",
+    "saúde": "Saúde",
+    "saude": "Saúde",
+    "deficiência": "Pessoas com Deficiência",
+    "deficiencia": "Pessoas com Deficiência",
+    "autismo": "Pessoas com Deficiência",
+    "cultura": "Cultura",
+    "arte": "Cultura",
+    "teatro": "Cultura",
+    "música": "Cultura",
+    "musica": "Cultura",
+    "direitos humanos": "Direitos Humanos",
+    "assistência social": "Assistência Social",
+    "assistencia social": "Assistência Social",
+    "refugiad": "Direitos Humanos",
+    "indígena": "Direitos Humanos",
+    "indigena": "Direitos Humanos",
+    "negro": "Direitos Humanos",
+    "negros": "Direitos Humanos",
+    "racial": "Direitos Humanos",
+}
+
+
+def _extract_state_from_text(text: str) -> str | None:
+    """Extrai UF do texto: primeiro tenta sigla explícita, depois nome de cidade."""
+    normalized = text.upper()
+    # 1. Sigla de 2 letras precedida de "em", "no", "na", "de" ou após vírgula/ponto
+    for match in re.finditer(r"\b([A-Z]{2})\b", normalized):
+        if match.group(1) in _ESTADOS_BR:
+            return match.group(1)
+    # 2. Nome de cidade → estado
+    lower = text.lower()
+    for city, state in _CITY_TO_STATE.items():
+        if city in lower:
+            return state
+    return None
+
+
+def _extract_category_hint(text: str) -> str | None:
+    """Mapeia palavras-chave da mensagem para uma categoria de ONG."""
+    lower = text.lower()
+    for keyword, category in _KEYWORD_CATEGORY_MAP.items():
+        if keyword in lower:
+            return category
+    return None
+
 llm = ChatOpenAI(
     model=settings.OPENAI_MODEL,
     temperature=settings.OPENAI_TEMPERATURE,
@@ -189,12 +301,14 @@ def make_enrich_node(db: Session):
 
     def enrich_node(state: ConversationState) -> dict:
         intent = state["intent"]
+        user_message = state["user_message"]
 
         if intent == "Fora do Escopo":
             logger.info("Enrich: intent 'Fora do Escopo' — busca de ONGs ignorada")
             return {"ong_context": ""}
 
         query = db.query(Ong).filter(Ong.is_active.is_(True))
+        applied_hint = False
 
         if intent == "Quero Doar":
             query = query.filter(
@@ -213,8 +327,28 @@ def make_enrich_node(db: Session):
                     "População de Rua",
                 ])
             )
+        else:
+            # Para intents sem filtro rígido (Informação Geral, Voluntariado,
+            # Parceria, Ambíguo): tenta filtrar por categoria e/ou estado
+            # extraídos da mensagem do usuário para reduzir o contexto enviado ao LLM.
+            category_hint = _extract_category_hint(user_message)
+            if category_hint and intent == "Informação Geral":
+                query = query.filter(Ong.category == category_hint)
+                applied_hint = True
+                logger.info(f"Enrich: categoria inferida='{category_hint}'")
 
-        limit = 10 if intent in ("Quero Doar", "Busco Ajuda/Beneficiário") else 30
+            state_hint = _extract_state_from_text(user_message)
+            if state_hint:
+                query = query.filter(Ong.state == state_hint)
+                applied_hint = True
+                logger.info(f"Enrich: estado inferido='{state_hint}'")
+
+        if intent in ("Quero Doar", "Busco Ajuda/Beneficiário"):
+            limit = 10
+        elif applied_hint:
+            limit = 15
+        else:
+            limit = 30
         ongs = query.order_by(Ong.name).limit(limit).all()
 
         if not ongs:

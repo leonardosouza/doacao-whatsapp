@@ -32,6 +32,8 @@ def list_ongs(
     category: str | None = None,
     state: str | None = None,
     city: str | None = None,
+    q: str | None = None,
+    name: str | None = None,
     active_only: bool = True,
     skip: int = 0,
     limit: int = 50,
@@ -46,6 +48,13 @@ def list_ongs(
         query = query.filter(Ong.state == state.upper())
     if city:
         query = query.filter(Ong.city.ilike(f"%{_escape_like(city)}%"))
+    if q:
+        esc = _escape_like(q)
+        query = query.filter(
+            Ong.name.ilike(f"%{esc}%") | Ong.subcategory.ilike(f"%{esc}%")
+        )
+    if name:
+        query = query.filter(Ong.name.ilike(f"%{_escape_like(name)}%"))
 
     return query.order_by(Ong.name).offset(skip).limit(limit).all()
 
