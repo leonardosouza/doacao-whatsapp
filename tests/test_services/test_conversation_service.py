@@ -235,3 +235,85 @@ class TestUpdateUserProfile:
         db_session.expire(sample_conversation)
         refreshed = db_session.get(Conversation, sample_conversation.id)
         assert refreshed.user_name == "Pedro"
+
+
+class TestHasRepeatedContent:
+    """Testes para has_repeated_content() — circuit breaker de conteúdo repetido (v1.6.4)."""
+
+    def test_returns_false_when_below_limit(self, db_session, sample_conversation):
+        """2 mensagens com mesmo conteúdo, limit=3 → False."""
+        for _ in range(2):
+            conversation_service.save_message(
+                db_session, sample_conversation, "inbound", "Oi tudo bem"
+            )
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Oi tudo bem", limit=3
+        ) is False
+
+    def test_returns_true_when_at_limit(self, db_session, sample_conversation):
+        """3 mensagens idênticas com limit=3 → True."""
+        for _ in range(3):
+            conversation_service.save_message(
+                db_session, sample_conversation, "inbound", "Quero doações"
+            )
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Quero doações", limit=3
+        ) is True
+
+    def test_different_phone_not_counted(self, db_session, sample_conversation):
+        """Mensagens idênticas de outro número não devem interferir no count."""
+        from app.models.conversation import Conversation as ConvModel
+        other = ConvModel(phone_number="5522999990000")
+        db_session.add(other)
+        db_session.commit()
+        for _ in range(3):
+            conversation_service.save_message(db_session, other, "inbound", "Texto igual")
+        # mesmo texto, mas de outro telefone → não deve bloquear sample_conversation.phone_number
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Texto igual", limit=3
+        ) is False
+
+    def test_different_content_not_counted(self, db_session, sample_conversation):
+        """Mensagens com conteúdo diferente do alvo não devem ser contadas."""
+        for i in range(3):
+            conversation_service.save_message(
+                db_session, sample_conversation, "inbound", f"Mensagem diferente {i}"
+            )
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Outro conteúdo", limit=3
+        ) is False
+
+    def test_outbound_not_counted(self, db_session, sample_conversation):
+        """Mensagens outbound com o mesmo conteúdo não devem ser contadas."""
+        for _ in range(3):
+            conversation_service.save_message(
+                db_session, sample_conversation, "outbound", "Resposta repetida"
+            )
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Resposta repetida", limit=3
+        ) is False
+
+    def test_respects_window(self, db_session, sample_conversation):
+        """Mensagens fora da janela de tempo não devem ser contadas."""
+        from datetime import UTC, datetime, timedelta
+        from app.models.message import Message as MsgModel
+
+        # Insere 3 mensagens antigas (fora da janela de 60s)
+        for i in range(3):
+            old = MsgModel(
+                conversation_id=sample_conversation.id,
+                direction="inbound",
+                content="Mensagem antiga",
+            )
+            db_session.add(old)
+            db_session.commit()
+            db_session.query(MsgModel).filter(MsgModel.id == old.id).update(
+                {MsgModel.created_at: datetime.now(UTC) - timedelta(seconds=120)}
+            )
+            db_session.commit()
+
+        # Dentro da janela (60s): count deve ser 0 → False
+        assert conversation_service.has_repeated_content(
+            db_session, sample_conversation.phone_number, "Mensagem antiga",
+            limit=3, window_seconds=60,
+        ) is False

@@ -32,6 +32,12 @@ _RATE_LIMIT = 5    # máximo de mensagens por janela
 _RATE_WINDOW = 60  # janela em segundos
 
 # ---------------------------------------------------------------------------
+# Camada 4: Circuit breaker de conteúdo repetido (3 msgs idênticas/60s)
+# ---------------------------------------------------------------------------
+_REPEATED_CONTENT_LIMIT = 3    # mensagens idênticas por janela
+_REPEATED_CONTENT_WINDOW = 60  # janela em segundos
+
+# ---------------------------------------------------------------------------
 # Camada 2: Detecção de bots — padrões regex (famílias genéricas) + literais
 # ---------------------------------------------------------------------------
 
@@ -134,6 +140,19 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
 
     media_type = payload.get_media_type()
     if media_type:
+        # Deduplicação: Z-API pode re-entregar o mesmo webhook (ex.: cold start do Render)
+        if conversation_service.is_duplicate_message(db, payload.messageId):
+            logger.warning(f"Mídia duplicada ignorada: messageId={payload.messageId}")
+            return {"status": "ignored", "reason": "duplicate"}
+        # Salva no banco antes de responder — garante dedup em retries futuros
+        _media_conv = conversation_service.get_or_create_conversation(db, payload.phone)
+        conversation_service.save_message(
+            db,
+            conversation=_media_conv,
+            direction="inbound",
+            content=f"[mídia: {media_type}]",
+            zapi_message_id=payload.messageId,
+        )
         logger.info(f"Mídia recebida ({media_type}) de {_mask_phone(payload.phone)} — enviando aviso ao usuário")
         await zapi_service.send_text_message(
             payload.phone,
@@ -181,6 +200,13 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
     if conversation_service.count_recent_inbound(db, payload.phone, _RATE_WINDOW) > _RATE_LIMIT:
         logger.warning(f"Rate limit DB excedido para {_mask_phone(payload.phone)} — mensagem ignorada")
         return {"status": "ignored", "reason": "rate_limited"}
+
+    # Camada 4: Circuit breaker de conteúdo repetido — silencia loops sem acionar o agente
+    if conversation_service.has_repeated_content(
+        db, payload.phone, message_text, _REPEATED_CONTENT_LIMIT, _REPEATED_CONTENT_WINDOW
+    ):
+        logger.warning(f"Conteúdo repetido detectado para {_mask_phone(payload.phone)} — mensagem ignorada")
+        return {"status": "ignored", "reason": "repeated_content"}
 
     # Recupera histórico da conversa para contexto do agente (exclui a mensagem atual)
     history_messages = conversation_service.get_conversation_history(

@@ -78,7 +78,7 @@ doacao-whatsapp/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── seed_ongs_v2.sql         # Seed de 52 ONGs (2026-02-28)
 │   └── seed_ongs_v3.sql         # Seed de 223 ONGs da ABONG (2026-02-28)
-├── tests/                       # 207 testes automatizados (99% cobertura)
+├── tests/                       # 219 testes automatizados (99% cobertura)
 ├── docs/
 │   ├── agent_graph.png          # Diagrama visual do grafo LangGraph
 │   ├── ARCHITECTURE.md
@@ -390,7 +390,7 @@ curl -s -X POST "https://api.render.com/v1/services/{SERVICE_ID}/deploys" \
 
 ## Testes
 
-O projeto possui **207 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
+O projeto possui **219 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
 
 ### Executar os Testes
 
@@ -621,6 +621,13 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 ---
 
 ## Changelog
+
+### [1.6.4] - 2026-03-01
+
+**Security**
+- Camada 4 — Circuit breaker de conteúdo repetido: bloqueia silenciosamente quando o mesmo conteúdo inbound é recebido ≥ 3 vezes em 60s — detecta bots que contornam o rate limit enviando a mesma mensagem entre janelas
+- Deduplicação de mídia: webhooks de áudio/imagem/vídeo/documento/sticker agora salvam o `messageId` antes de responder — Z-API retries não geram segundo aviso ao usuário
+- 12 novos testes (`TestMediaDeduplication`, `TestRepeatedContentCircuitBreaker`, `TestHasRepeatedContent`) — total: **219 testes, 99% cobertura**
 
 ### [1.6.3] - 2026-03-01
 

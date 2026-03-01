@@ -141,6 +141,33 @@ def has_consecutive_out_of_scope(
     return oos_count >= threshold
 
 
+def has_repeated_content(
+    db: Session,
+    phone: str,
+    content: str,
+    limit: int = 3,
+    window_seconds: int = 60,
+) -> bool:
+    """Retorna True se o mesmo conteúdo inbound foi recebido >= limit vezes em window_seconds.
+
+    O contador inclui a mensagem atual (já salva antes desta chamada).
+    Detecta bots que enviam a mesma mensagem repetidamente entre janelas de rate limit.
+    """
+    cutoff = datetime.now(UTC) - timedelta(seconds=window_seconds)
+    count = (
+        db.query(func.count(Message.id))
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .filter(
+            Conversation.phone_number == phone,
+            Message.direction == "inbound",
+            Message.content == content,
+            Message.created_at > cutoff,
+        )
+        .scalar() or 0
+    )
+    return count >= limit
+
+
 def format_history(messages: list[Message]) -> str:
     """Formata mensagens em texto de histórico para os prompts."""
     if not messages:

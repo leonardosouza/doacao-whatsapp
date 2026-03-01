@@ -493,3 +493,130 @@ class TestRateLimitRaceConditionFix:
             )
             assert resp.json().get("reason") != "rate_limited"
             mock_proc.assert_called_once()
+
+
+class TestMediaDeduplication:
+    """Testes para deduplicação de mídia via banco de dados (v1.6.4 — Feature A)."""
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_first_media_message_sends_response_and_saves_to_db(self, mock_send, client, db_session):
+        """1ª mensagem de mídia: salva messageId no banco e envia aviso ao usuário."""
+        from app.models.message import Message
+
+        mock_send.return_value = {}
+        msg_id = "media-first-001"
+        payload = _make_payload(
+            phone="5511444440001", messageId=msg_id,
+            text=None, audio={"audioUrl": "https://a.com/a.ogg", "mimeType": "audio/ogg"},
+        )
+
+        resp = client.post("/api/webhook", json=payload)
+
+        assert resp.json()["status"] == "unsupported_media"
+        assert resp.json()["reason"] == "audio"
+        mock_send.assert_called_once()
+
+        # Verifica que o messageId foi persistido para dedup futura
+        saved = db_session.query(Message).filter(Message.zapi_message_id == msg_id).first()
+        assert saved is not None, "messageId de mídia deve ser salvo no banco"
+        assert saved.direction == "inbound"
+        assert "[mídia: audio]" in saved.content
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_duplicate_media_webhook_ignored(self, mock_send, client):
+        """Segundo webhook com mesmo messageId de mídia deve ser ignorado sem enviar resposta."""
+        mock_send.return_value = {}
+        msg_id = "media-dup-001"
+        payload = _make_payload(
+            phone="5511444440002", messageId=msg_id,
+            text=None, image={"imageUrl": "https://a.com/i.jpg"},
+        )
+
+        first = client.post("/api/webhook", json=payload)
+        assert first.json()["status"] == "unsupported_media"
+
+        # Segundo webhook com o mesmo messageId (Z-API retry)
+        second = client.post("/api/webhook", json=payload)
+        assert second.json()["status"] == "ignored"
+        assert second.json()["reason"] == "duplicate"
+
+        # Aviso enviado apenas uma vez (no primeiro webhook)
+        assert mock_send.call_count == 1
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    def test_different_media_messageids_both_responded(self, mock_send, client):
+        """Dois webhooks com messageIds distintos devem gerar dois avisos ao usuário."""
+        mock_send.return_value = {}
+        phone = "5511444440003"
+
+        client.post("/api/webhook", json=_make_payload(
+            phone=phone, messageId="media-distinct-001",
+            text=None, sticker={"stickerUrl": "https://a.com/s1.webp"},
+        ))
+        client.post("/api/webhook", json=_make_payload(
+            phone=phone, messageId="media-distinct-002",
+            text=None, sticker={"stickerUrl": "https://a.com/s2.webp"},
+        ))
+
+        assert mock_send.call_count == 2
+
+
+class TestRepeatedContentCircuitBreaker:
+    """Testes para o circuit breaker de conteúdo repetido (v1.6.4 — Feature B)."""
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_repeated_content_blocks_at_third_identical_message(self, mock_proc, mock_send, client):
+        """3ª mensagem idêntica dentro da janela deve retornar ignored/repeated_content."""
+        mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+        mock_send.return_value = {}
+
+        phone = "5519555550001"
+        text = "Oi quero ajuda com doação"
+
+        client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rc-1", text={"message": text}))
+        client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rc-2", text={"message": text}))
+
+        # 3ª mensagem — deve ser bloqueada
+        third = client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rc-3", text={"message": text}))
+        assert third.json()["status"] == "ignored"
+        assert third.json()["reason"] == "repeated_content"
+
+        # Agente chamado apenas nas 2 primeiras
+        assert mock_proc.call_count == 2
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_repeated_content_allows_below_threshold(self, mock_proc, mock_send, client):
+        """2 mensagens idênticas (abaixo do limite de 3) devem ser processadas normalmente."""
+        mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+        mock_send.return_value = {}
+
+        phone = "5519555550002"
+        text = "Preciso de informações sobre voluntariado"
+
+        first = client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rc-ok-1", text={"message": text}))
+        second = client.post("/api/webhook", json=_make_payload(phone=phone, messageId="rc-ok-2", text={"message": text}))
+
+        assert first.json()["status"] == "processed"
+        assert second.json()["status"] == "processed"
+        assert mock_proc.call_count == 2
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_different_content_from_same_phone_not_blocked(self, mock_proc, mock_send, client):
+        """Mensagens com conteúdo diferente do mesmo número não devem ser bloqueadas."""
+        mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+        mock_send.return_value = {}
+
+        phone = "5519555550003"
+
+        # Envia 3+ mensagens com conteúdos diferentes
+        for i in range(4):
+            resp = client.post(
+                "/api/webhook",
+                json=_make_payload(phone=phone, messageId=f"rc-diff-{i}", text={"message": f"Mensagem {i}"}),
+            )
+            assert resp.json()["status"] == "processed", f"Mensagem {i} não deveria ser bloqueada"
+
+        assert mock_proc.call_count == 4

@@ -5,6 +5,27 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.6.4] - 2026-03-01
+
+### Security
+- **Camada 4 — Circuit breaker de conteúdo repetido** (`webhook.py` + `conversation_service.py`):
+  nova função `has_repeated_content()` bloqueia silenciosamente mensagens quando o mesmo
+  conteúdo inbound é recebido **≥ 3 vezes em 60 segundos**. Detecta bots que enviam a mesma
+  mensagem repetidamente entre janelas de rate limit (identificado em produção: bot enviou
+  7 mensagens idênticas em 2 horas, contornando o rate limit de 60 s). A mensagem atual já
+  está salva antes do check (mesmo padrão do rate limit), garantindo contagem correta em
+  requisições concorrentes.
+- **Deduplicação de mídia** (`webhook.py`): webhooks de mídia (áudio, imagem, vídeo,
+  documento, sticker) agora salvam o `messageId` no banco **antes** de enviar o aviso
+  "Por enquanto só consigo processar mensagens de texto". Em caso de retry do Z-API
+  (cold start do Render), o segundo webhook é reconhecido como duplicado por
+  `is_duplicate_message()` e descartado silenciosamente — eliminando o envio de dois
+  avisos idênticos ao usuário para o mesmo arquivo de mídia.
+  **12 novos testes** adicionados (`TestMediaDeduplication`, `TestRepeatedContentCircuitBreaker`,
+  `TestHasRepeatedContent`) — total: **219 testes, 99% cobertura**.
+
+---
+
 ## [1.6.3] - 2026-03-01
 
 ### Security

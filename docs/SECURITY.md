@@ -14,7 +14,7 @@ Toda mensagem recebida em `POST /api/webhook` passa pelos seguintes filtros em o
 | 1 | Rate limiting por número (banco de dados) | Silencia após ≥ 5 msgs em 60s; sobrevive a reinicializações |
 | 2 | Detecção de bot por auto-identificação | Descarta mensagens com assinaturas de CRM/assistentes virtuais |
 | 3 | Circuit breaker OOS proporcional | Silencia após ≥ 3 de 6 respostas "Fora do Escopo" em 2 minutos |
-| 4 | Limite de tentativas de coleta de nome | Máximo 3 tentativas; prossegue sem nome para evitar loop |
+| 4 | Circuit breaker de conteúdo repetido | Silencia após ≥ 3 msgs idênticas em 60s (bots entre janelas de rate limit) |
 
 ### Camada 0 — Validação de Origem (`instanceId`)
 
@@ -62,6 +62,25 @@ Implementada em dois níveis complementares (v1.6.3):
 Detecta quando **ao menos 3 das últimas 6 respostas `outbound`** para um número foram classificadas como `"Fora do Escopo"` dentro de uma janela de 2 minutos. Nesse caso, a próxima mensagem é descartada sem resposta.
 
 A lógica proporcional (em vez de consecutiva) corrige um bypass onde bots de terceiros intercalavam mensagens genéricas (`Ambíguo`) entre as respostas OOS para quebrar a contagem consecutiva e continuar o loop.
+
+### Camada 4 — Circuit Breaker de Conteúdo Repetido
+
+Detecta bots que enviam a **mesma mensagem repetidamente** entre janelas de rate limit (o rate limit de 60 s expira, o bot retorna com o mesmo conteúdo e gera nova resposta). Bloqueia silenciosamente quando o mesmo conteúdo inbound é recebido **≥ 3 vezes em 60 segundos**:
+
+```python
+if conversation_service.has_repeated_content(
+    db, payload.phone, message_text, _REPEATED_CONTENT_LIMIT, _REPEATED_CONTENT_WINDOW
+):
+    return {"status": "ignored", "reason": "repeated_content"}
+```
+
+A mensagem é salva antes do check (mesmo padrão do rate limit), garantindo contagem correta em requisições concorrentes. Identificado em produção: bot enviou 7 mensagens idênticas em 2 horas para o mesmo número.
+
+### Deduplicação de Mídia
+
+Webhooks de mídia (áudio, imagem, vídeo, documento, sticker) agora salvam o `messageId` no banco **antes** de enviar o aviso ao usuário. Em caso de retry do Z-API (ex.: cold start do Render), o segundo webhook é reconhecido como duplicado e descartado silenciosamente — eliminando o envio de dois avisos idênticos ao usuário para o mesmo arquivo de mídia.
+
+---
 
 ### Guard-Rails do Agente LLM
 
