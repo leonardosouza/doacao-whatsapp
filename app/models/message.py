@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,6 +10,17 @@ from app.database import Base
 
 class Message(Base):
     __tablename__ = "messages"
+    __table_args__ = (
+        # Cobre 4 queries de alta frequência: get_conversation_history,
+        # última msg do bot (profile_node), count_recent_inbound (rate-limit)
+        # e has_consecutive_out_of_scope. PostgreSQL não indexa FK automaticamente.
+        Index(
+            "ix_messages_conversation_direction_created",
+            "conversation_id",
+            "direction",
+            text("created_at DESC"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,6 +10,15 @@ from app.database import Base
 
 class Conversation(Base):
     __tablename__ = "conversations"
+    __table_args__ = (
+        # Índice parcial — cobre get_or_create_conversation() que sempre filtra
+        # por phone_number AND status = 'active'. Mais seletivo que índice composto.
+        Index(
+            "ix_conversations_phone_active",
+            "phone_number",
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
