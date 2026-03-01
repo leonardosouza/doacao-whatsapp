@@ -97,7 +97,7 @@ doacao-whatsapp/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── seed_ongs_v2.sql         # Seed original (52 ONGs, 2026-02-28)
 │   └── seed_ongs_v3.sql         # Seed ABONG (223 novas ONGs, total: 275)
-├── tests/                       # 192 testes automatizados (99% cobertura)
+├── tests/                       # 219 testes automatizados (99% cobertura)
 ├── docs/
 │   ├── agent_graph.png          # Diagrama visual do grafo LangGraph
 │   ├── ARCHITECTURE.md          # Arquitetura, fluxo e guard-rails
