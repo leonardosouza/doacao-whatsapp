@@ -622,6 +622,23 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 
 ## Changelog
 
+### [1.6.1] - 2026-03-01
+
+**Performance**
+- Migration 015: índice composto `ix_messages_conversation_direction_created` em `messages(conversation_id, direction, created_at DESC)` — cobre 4 queries de alta frequência sem índice desde migration 001
+- Migration 015: índice parcial `ix_conversations_phone_active` em `conversations(phone_number) WHERE status = 'active'` — otimiza `get_or_create_conversation()`
+- Modelos SQLAlchemy atualizados com `__table_args__`
+
+### [1.6.0] - 2026-03-01
+
+**Added**
+- `GET /api/ongs?q=`: busca livre por texto em `name` e `subcategory` via ILIKE (`?q=lgbt`, `?q=meio+ambiente`)
+- `GET /api/ongs?name=`: filtro por nome parcial da ONG (`?name=byler`)
+- `_extract_state_from_text()`: extrai UF da mensagem do usuário via sigla ou nome de cidade (33 mapeamentos)
+- `_extract_category_hint()`: mapeia 50+ palavras-chave para categorias canônicas
+- `enrich_node` contextualizado: filtra ONGs por estado e/ou categoria extraídos da mensagem (30 → 15 ONGs quando há correspondência)
+- 30 novos testes — total: **192 testes, 99% cobertura**
+
 ### [1.5.10] - 2026-02-28
 
 **Security**

@@ -101,6 +101,18 @@ Padrões bloqueados automaticamente:
 - Impersonação de outro bot ou serviço externo (cobranças, boletos)
 - Solicitação do prompt de sistema ou de outra identidade
 
+## Banco de Dados — Estratégia de Índices
+
+A tabela `messages` é a mais consultada do sistema: 4 queries distintas são executadas a cada mensagem recebida. Os índices foram criados explicitamente (migration 015) pois o PostgreSQL não indexa colunas FK automaticamente.
+
+| Índice | Tabela | Colunas | Tipo | Queries beneficiadas |
+|--------|--------|---------|------|---------------------|
+| `ix_messages_conversation_direction_created` | `messages` | `(conversation_id, direction, created_at DESC)` | B-tree composto | `get_conversation_history`, última msg do bot, `count_recent_inbound`, `has_consecutive_out_of_scope` |
+| `ix_conversations_phone_active` | `conversations` | `(phone_number) WHERE status = 'active'` | B-tree parcial | `get_or_create_conversation` |
+| `ix_conversations_phone_number` | `conversations` | `(phone_number)` | B-tree | criado via `index=True` no modelo |
+| `ix_messages_zapi_message_id` | `messages` | `(zapi_message_id)` | B-tree único | deduplicação de webhooks |
+| `ix_ongs_category`, `ix_ongs_state` | `ongs` | `(category)`, `(state)` | B-tree | filtros de ONGs na API e no agente |
+
 ## Tratamento de Mídia
 
 Mensagens de áudio, vídeo, imagem, documento ou sticker são identificadas pelo tipo do payload Z-API e recebem uma resposta automática informando que o bot processa apenas texto. O agente não é acionado para esse tipo de conteúdo.

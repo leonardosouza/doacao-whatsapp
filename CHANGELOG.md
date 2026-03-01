@@ -5,6 +5,23 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.6.1] - 2026-03-01
+
+### Performance
+- **Migration 015 — Índices de performance** (`alembic/versions/015_add_performance_indexes.py`):
+  - `ix_messages_conversation_direction_created`: índice composto em
+    `messages(conversation_id, direction, created_at DESC)`. PostgreSQL não indexa FKs
+    automaticamente; a ausência afetava 4 queries executadas em toda mensagem recebida:
+    `get_conversation_history`, última msg do bot (`profile_node`), `count_recent_inbound`
+    (rate-limit) e `has_consecutive_out_of_scope` (circuit breaker).
+  - `ix_conversations_phone_active`: índice parcial em `conversations(phone_number)
+    WHERE status = 'active'`. Otimiza `get_or_create_conversation()` que sempre filtra
+    por `phone_number AND status = 'active'`.
+- Modelos SQLAlchemy (`app/models/message.py`, `app/models/conversation.py`) atualizados
+  com `__table_args__` refletindo os novos índices.
+
+---
+
 ## [1.6.0] - 2026-03-01
 
 ### Added
