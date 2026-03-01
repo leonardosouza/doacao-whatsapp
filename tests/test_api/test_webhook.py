@@ -203,10 +203,10 @@ class TestRateLimiting:
     """Testes para a Camada 1: rate limiting persistente via banco de dados."""
 
     def test_rate_limit_blocks_when_count_reaches_limit(self, client):
-        """Quando count_recent_inbound retorna >= 5, a mensagem deve ser bloqueada."""
+        """Quando count_recent_inbound retorna > 5 (inclui msg atual), deve bloquear."""
         with patch(
             "app.api.routes.webhook.conversation_service.count_recent_inbound",
-            return_value=5,
+            return_value=6,  # count inclui a mensagem atual após save
         ):
             resp = client.post("/api/webhook", json=_make_payload(phone="5519111111001", messageId="rl-blocked"))
             assert resp.json()["status"] == "ignored"
@@ -345,3 +345,151 @@ class TestBotDetection:
             json=_make_payload(phone="5519888880003", text={"message": "Quero fazer uma doação"}),
         )
         assert resp.json()["status"] == "processed"
+
+
+class TestBotDetectionRegex:
+    """Testes para os padrões regex genéricos da Camada 2 (v1.6.3)."""
+
+    def test_regex_magalu_lu_self_identification(self, client):
+        """'Aqui é a Lu, assistente virtual do Magalu' deve ser detectado via regex."""
+        text = "Aqui é a Lu, assistente virtual do Magalu! Como posso ajudar?"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5511974627106", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_generic_assistant_sou_um(self, client):
+        """'sou um assistente virtual' genérico (sem empresa) deve ser detectado via regex."""
+        text = "Olá! Sou um assistente virtual. Como posso te ajudar hoje?"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770001", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_generic_assistant_sou_o(self, client):
+        """'sou o agente virtual' deve ser detectado via regex."""
+        text = "Oi! Sou o agente virtual da empresa XYZ. Pode me dizer seu CPF?"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770002", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_cpf_request_envie(self, client):
+        """Solicitação de CPF via 'envie seu CPF' deve ser detectada via regex."""
+        text = "Para continuar, por favor envie seu CPF."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770003", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_cpf_request_confirme(self, client):
+        """Solicitação de CPF via 'confirme o CPF' deve ser detectada via regex."""
+        text = "Confirme o seu CPF para prosseguirmos com o atendimento."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770004", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_cpf_validation_error(self, client):
+        """Mensagem 'O CPF informado não é válido' deve ser detectada via regex."""
+        text = "O CPF informado não é válido. Por favor, tente novamente."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770005", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_cnpj_invalido(self, client):
+        """Mensagem 'CNPJ inválido' deve ser detectada via regex."""
+        text = "O CNPJ informado está incorreto. Verifique e tente novamente."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770006", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_nps_nivel_satisfacao(self, client):
+        """Pesquisa NPS 'nível de satisfação' deve ser detectada via regex."""
+        text = "Qual é o seu nível de satisfação com o atendimento que você recebeu hoje?"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770007", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_nps_de_0_a_10(self, client):
+        """Pesquisa NPS 'de 0 a 10, como você avalia' deve ser detectada via regex."""
+        text = "De 0 a 10, como você avalia o nosso atendimento?"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770008", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_segunda_via_fatura(self, client):
+        """Oferta de '2ª via de fatura' (concessionária) deve ser detectada via regex."""
+        text = "Você pode solicitar a 2ª via de fatura diretamente por aqui."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770009", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    def test_regex_segunda_via_por_extenso(self, client):
+        """'segunda via de conta' (por extenso) deve ser detectada via regex."""
+        text = "Solicite a segunda via de conta de energia pelo nosso site."
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770010", text={"message": text}))
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "bot_detected"
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_regex_does_not_block_donation_message(self, mock_proc, mock_send, client):
+        """Mensagem legítima de doação não deve ser bloqueada pelos padrões regex."""
+        mock_proc.return_value = {"response": "Olá!", "intent": "Quero Doar", "sentiment": "Positivo"}
+        mock_send.return_value = {}
+        text = "Quero fazer uma doação para crianças em situação de rua"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770099", text={"message": text}))
+        assert resp.json()["status"] == "processed"
+
+    @patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock)
+    @patch("app.api.routes.webhook.process_message", new_callable=AsyncMock)
+    def test_regex_does_not_block_help_request(self, mock_proc, mock_send, client):
+        """Pedido de ajuda legítimo não deve ser bloqueado pelos padrões regex."""
+        mock_proc.return_value = {"response": "Olá!", "intent": "Busco Ajuda/Beneficiário", "sentiment": "Neutro"}
+        mock_send.return_value = {}
+        text = "Preciso de ajuda com alimentação para minha família"
+        resp = client.post("/api/webhook", json=_make_payload(phone="5519777770098", text={"message": text}))
+        assert resp.json()["status"] == "processed"
+
+
+class TestRateLimitRaceConditionFix:
+    """Testa que a mensagem inbound é salva ANTES da verificação de rate limit (v1.6.3)."""
+
+    def test_inbound_message_saved_even_when_rate_limited(self, client, db_session):
+        """Mensagem deve ser persistida no DB mesmo quando o rate limit é ativado."""
+        from app.models.message import Message
+
+        phone = "5519333330001"
+        msg_id = "race-condition-test-001"
+
+        with patch(
+            "app.api.routes.webhook.conversation_service.count_recent_inbound",
+            return_value=6,  # > _RATE_LIMIT (5); simula: msg atual já está no count
+        ):
+            resp = client.post(
+                "/api/webhook",
+                json=_make_payload(phone=phone, messageId=msg_id, text={"message": "Oi"}),
+            )
+
+        assert resp.json()["status"] == "ignored"
+        assert resp.json()["reason"] == "rate_limited"
+
+        # Verifica que a mensagem FOI salva no banco antes do check de rate limit
+        saved = db_session.query(Message).filter(Message.zapi_message_id == msg_id).first()
+        assert saved is not None, "Mensagem deve ser salva antes do rate limit check (corrige race condition)"
+        assert saved.direction == "inbound"
+
+    def test_rate_limit_count_5_allows_message(self, client):
+        """count=5 (inclui msg atual como 5ª) NÃO deve bloquear — apenas count>5 bloqueia."""
+        with (
+            patch(
+                "app.api.routes.webhook.conversation_service.count_recent_inbound",
+                return_value=5,  # 5 > 5? False → deve processar
+            ),
+            patch("app.api.routes.webhook.process_message", new_callable=AsyncMock) as mock_proc,
+            patch("app.api.routes.webhook.zapi_service.send_text_message", new_callable=AsyncMock) as mock_send,
+        ):
+            mock_proc.return_value = {"response": "R", "intent": "Ambíguo", "sentiment": "Neutro"}
+            mock_send.return_value = {}
+            resp = client.post(
+                "/api/webhook",
+                json=_make_payload(phone="5519333330002", messageId="race-condition-test-002"),
+            )
+            assert resp.json().get("reason") != "rate_limited"
+            mock_proc.assert_called_once()

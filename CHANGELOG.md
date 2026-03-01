@@ -5,6 +5,34 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.6.3] - 2026-03-01
+
+### Security
+- **Camada 2 — Detecção de bot via regex genérico** (`webhook.py`): substituição das assinaturas
+  literais específicas por empresa por **5 padrões regex** que cobrem famílias inteiras de bots:
+  1. Auto-identificação como assistente/analista/atendente/agente/colaborador(a) virtual
+     (qualquer empresa) — cobre CPFL, Sabesp, Magalu e bots futuros;
+  2. Solicitação de CPF/CNPJ (informe, confirme, digit[ae], insira, passe, envie, mand[ae]);
+  3. Validação negativa de CPF/CNPJ (esse/este/o/a CPF/CNPJ + inválido/incorreto/não encontrado);
+  4. Pesquisa NPS/satisfação (nível de satisfação, de 0 a 10, muito insatisfeito…muito satisfeito);
+  5. Oferta de 2ª/segunda via de fatura/conta/boleto/débito (concessionárias).
+  16 literais específicos mantidos para padrões únicos que não se generalizam (Magalu URL,
+  rejeição de CRM, spam, etc.). **15 novos testes** adicionados (`TestBotDetectionRegex`,
+  `TestRateLimitRaceConditionFix`) — total: **207 testes, 99% cobertura**.
+- **Race condition no rate limiting** (`webhook.py`): mensagem inbound agora é salva **antes**
+  da verificação de rate limit. O contador `count_recent_inbound` inclui a mensagem atual,
+  eliminando o bypass onde requisições concorrentes viam `count=0` e todas passavam pelo check
+  simultâneamente (identificado em produção: CPFL respondeu 14× em vez de 5× em 33 segundos).
+  Condição alterada de `>= _RATE_LIMIT` para `> _RATE_LIMIT` para manter o mesmo limite de
+  5 mensagens processadas por janela de 60 s.
+
+### Fixed
+- **Extração de nomes curtos** (`prompts.py`): `EXTRACT_NAME_PROMPT` atualizado com instrução
+  explícita de que nomes com 2 ou mais letras são válidos (ex.: "Lu", "Ed", "Lin", "Ana"),
+  prevenindo falsos negativos onde o LLM retornava `extracted: false` para nomes curtos comuns.
+
+---
+
 ## [1.6.2] - 2026-03-01
 
 ### Performance

@@ -7,6 +7,12 @@ ou, se a mensagem não contiver um nome pessoal claro:
 
 {{"name": null, "extracted": false}}
 
+REGRAS:
+- Nomes com 2 ou mais letras são válidos (ex.: "Lu", "Ed", "Al", "Lin", "Ana").
+- Extraia apenas o primeiro nome quando houver nome completo.
+- Se a mensagem for só um nome, mesmo curto, considere extracted: true.
+- Só retorne extracted: false se a mensagem for claramente sem nome (pergunta, número, emoji isolado, etc.).
+
 Mensagem do usuário: {user_message}"""
 
 PROFILE_COLLECT_PROMPT = """Você é o assistente virtual do DoaZap no WhatsApp, uma plataforma \

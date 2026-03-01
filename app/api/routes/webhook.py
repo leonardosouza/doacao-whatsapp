@@ -1,4 +1,5 @@
 import logging
+import re
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -31,38 +32,93 @@ _RATE_LIMIT = 5    # máximo de mensagens por janela
 _RATE_WINDOW = 60  # janela em segundos
 
 # ---------------------------------------------------------------------------
-# Camada 2: Detecção de bots por auto-identificação na mensagem
+# Camada 2: Detecção de bots — padrões regex (famílias genéricas) + literais
 # ---------------------------------------------------------------------------
-_BOT_SIGNATURES = [
-    # Fase 1 (v1.5.4)
-    "sou a analista virtual",
-    "sou um assistente virtual",
-    "sou um atendente virtual",
-    "analista virtual da ",
-    "atendente virtual da ",
-    "posso te ajudar com diversos assuntos",
-    "informe o seu cpf ou cnpj",
-    # Fase 2 (novos padrões CPFL / CRM / NPS)
-    "vou verificar se há alguma mensagem",
-    "desculpe, não entendi isso",
-    "qual é o seu nível de satisfação",
+
+# Padrões regex: cobrem famílias inteiras de bots sem depender de nomes de empresa
+_BOT_PATTERNS: list[re.Pattern] = [
+    # 1. Auto-identificação como assistente/analista/atendente virtual (qualquer empresa)
+    #    Cobre: "Sou a analista virtual da CPFL", "Aqui é a Lu, assistente virtual do Magalu",
+    #           "Sou o assistente virtual da Sabesp", "Eu sou um atendente virtual",
+    #           "Me chamo Bia, colaboradora virtual da XP"
+    re.compile(
+        r"\b(sou [ao]|sou uma?|aqui [eé] [ao]|eu sou [ao]|eu sou uma?|me chamo)"
+        r".{0,80}\b(assistente|analista|atendente|colaboradora?|agente)\s+virtual\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    # 2. Solicitação de CPF ou CNPJ (qualquer empresa ou fluxo de validação)
+    #    Cobre: "Informe seu CPF", "Confirme seu CNPJ", "Digite seu CPF para continuar",
+    #           "Insira o CPF ou CNPJ", "Por favor, mande o seu CPF"
+    re.compile(
+        r"\b(informe|confirme|digit[ae]|insira|passe|envie|mand[ae])\b.{0,60}\b(cpf|cnpj)\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    # 3. Validação negativa de CPF/CNPJ — loop típico de bot que rejeita o input
+    #    Cobre: "Esse CPF não é válido", "O CNPJ informado não é válido",
+    #           "Esse CPF ou CNPJ está incorreto", "CPF inválido, tente novamente"
+    re.compile(
+        r"\b(esse|este|o|a)\s+(cpf|cnpj)\b.{0,60}"
+        r"\b(válido|inválido|incorreto|não\s+existe|não\s+encontrado)\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r"\b(cpf|cnpj)\b.{0,40}\b(inválido|incorreto|não\s+encontrado|não\s+existe)\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    # 4. Pesquisa NPS / satisfação (pós-atendimento automático)
+    #    Cobre: "Qual é o seu nível de satisfação?", "De 0 a 10, como você avalia?",
+    #           "Muito insatisfeito | Insatisfeito | Neutro | Satisfeito | Muito satisfeito"
+    re.compile(r"\bn[íi]vel\s+de\s+satisfa[çc][aã]o\b", re.IGNORECASE),
+    re.compile(
+        r"\bmuito\s+insatisfeito\b.{0,80}\bmuito\s+satisfeito\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r"\bde\s+[0-9]\s+a\s+10\b.{0,60}\b(avalia|classifica|nota|pontua)\b",
+        re.IGNORECASE | re.DOTALL,
+    ),
+    # 5. Oferta de 2ª via de conta (concessionárias de água, energia, gás, telefonia)
+    #    Cobre: "2ª via de fatura", "2ª via de faturas", "segunda via da conta",
+    #           "Solicite a 2ª via de boleto", "serviço de segunda via de débito"
+    re.compile(
+        r"\b(2ª?|segunda)\s+via\s+(de\s+)?(faturas?|contas?|boletos?|d[eé]bitos?|servi[çc]os?)\b",
+        re.IGNORECASE,
+    ),
+]
+
+# Literais: padrões únicos que não se generalizam via regex
+_BOT_SIGNATURES: list[str] = [
+    # Magalu (Lu) — URL encurtada proprietária e política de privacidade
+    "maga.lu",
+    "política de privacidade do magalu",
+    # Sabesp/Sani e concessionárias genéricas
+    "sou a sani",
+    "posso te ajudar com diversos serviços",
+    "não conseguimos identificar sua solicitação",
+    "encerrado por inatividade",
+    # Pós-atendimento / CRM genérico
+    "lamentamos por sua experiência",
+    "agradecemos pelo seu tempo",
     "link de pagamento gerado",
     "queremos saber sua opinião",
     "número de protocolo",
     "já encontrei seu cadastro",
-    # Fase 3 (v1.5.10) — bots de concessionárias e fraudes identificados em produção
-    "sou a sani",                          # bot Sabesp
-    "2ª via de faturas",                   # padrão de concessionária (água/energia/gás)
-    "é sua vez!",                          # fraude/spam promocional
-    "não vamos seguir nesse momento com",  # rejeição de CRM
-    "esse cpf não é válido",               # loop de validação de CPF por bot
-    "esse cpf ou cnpj que você está",      # variante CPFL do loop de CPF
+    "vou verificar se há alguma mensagem",
+    "desculpe, não entendi isso",
+    # Spam / promoção
+    "é sua vez!",
+    # Rejeição de CRM
+    "não vamos seguir nesse momento com",
 ]
 
 
 def _is_bot_message(text: str) -> bool:
     """Retorna True se a mensagem contém assinatura típica de bot automatizado."""
     t = text.lower()
+    # Verifica padrões regex (famílias genéricas de bots)
+    if any(pat.search(t) for pat in _BOT_PATTERNS):
+        return True
+    # Verifica literais (padrões únicos que não se generalizam)
     return any(sig in t for sig in _BOT_SIGNATURES)
 
 
@@ -86,16 +142,11 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         )
         return {"status": "unsupported_media", "reason": media_type}
 
-    # Camada 1: Rate limiting persistente via DB — sem resposta (silêncio quebra loops de bot)
-    if conversation_service.count_recent_inbound(db, payload.phone, _RATE_WINDOW) >= _RATE_LIMIT:
-        logger.warning(f"Rate limit DB excedido para {_mask_phone(payload.phone)} — mensagem ignorada")
-        return {"status": "ignored", "reason": "rate_limited"}
-
     message_text = payload.get_message_text()
     if not message_text:
         return {"status": "ignored", "reason": "no text content"}
 
-    # Camada 2: Detecção de bot por auto-identificação — sem resposta
+    # Camada 2: Detecção de bot por padrões regex e literais — sem resposta
     if _is_bot_message(message_text):
         logger.warning(f"Bot detectado em {_mask_phone(payload.phone)}: {_truncate_msg(message_text)!r}")
         return {"status": "ignored", "reason": "bot_detected"}
@@ -104,7 +155,7 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         logger.warning(f"Webhook duplicado ignorado: messageId={payload.messageId}")
         return {"status": "ignored", "reason": "duplicate"}
 
-    # Camada 3: Circuit breaker OOS — silencia após 3 respostas consecutivas fora do escopo
+    # Camada 3: Circuit breaker OOS — silencia após 3 de 6 respostas "Fora do Escopo"
     if conversation_service.has_consecutive_out_of_scope(db, payload.phone):
         logger.warning(f"OOS consecutivo detectado para {_mask_phone(payload.phone)} — silêncio ativado")
         return {"status": "ignored", "reason": "consecutive_oos"}
@@ -115,6 +166,9 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         db, payload.phone
     )
 
+    # Salva a mensagem ANTES do rate limit: o contador inclui a mensagem atual,
+    # eliminando o race condition onde requisições concorrentes viam count=0 e
+    # todas passavam simultaneamente pelo check (CPFL: 14 respostas em vez de 5).
     inbound_msg = conversation_service.save_message(
         db,
         conversation=conversation,
@@ -122,6 +176,11 @@ async def receive_webhook(payload: ZAPIWebhookPayload, db: Session = Depends(get
         content=message_text,
         zapi_message_id=payload.messageId,
     )
+
+    # Camada 1: Rate limiting persistente via DB — count > LIMIT (inclui msg atual)
+    if conversation_service.count_recent_inbound(db, payload.phone, _RATE_WINDOW) > _RATE_LIMIT:
+        logger.warning(f"Rate limit DB excedido para {_mask_phone(payload.phone)} — mensagem ignorada")
+        return {"status": "ignored", "reason": "rate_limited"}
 
     # Recupera histórico da conversa para contexto do agente (exclui a mensagem atual)
     history_messages = conversation_service.get_conversation_history(

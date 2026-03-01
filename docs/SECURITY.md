@@ -31,32 +31,31 @@ Implementado via contagem direta na tabela `messages` (campo `created_at` + `dir
 
 Limites: **5 mensagens / 60 segundos** por número de telefone.
 
+**Race condition corrigida (v1.6.3):** A mensagem inbound é salva no banco **antes** da verificação de rate limit. Isso garante que requisições concorrentes (FastAPI async) são contadas antes do check — eliminando o bypass onde múltiplas requisições chegavam simultaneamente, viam `count=0` e todas passavam pelo filtro (identificado em produção: bot CPFL gerou 14 respostas em vez de 5 em 33 segundos). A condição foi ajustada de `>= 5` para `> 5` (o contador agora inclui a mensagem atual), mantendo o mesmo limite efetivo de 5 mensagens processadas por janela.
+
 ### Camada 2 — Detecção de Bot
 
-Padrões detectados no texto da mensagem (case-insensitive), organizados em três fases:
+Implementada em dois níveis complementares (v1.6.3):
 
-**Fase 1** — Assistentes virtuais genéricos:
-- `sou a analista virtual`, `sou um assistente virtual`, `sou um atendente virtual`
-- `analista virtual da`, `atendente virtual da`
-- `posso te ajudar com diversos assuntos`
-- `informe o seu cpf ou cnpj`
+**Padrões regex — famílias genéricas** (cobrem qualquer empresa):
 
-**Fase 2** — CRMs, NPS e bots de cobrança:
-- `vou verificar se há alguma mensagem`
-- `desculpe, não entendi isso`
-- `qual é o seu nível de satisfação`
-- `link de pagamento gerado`
-- `queremos saber sua opinião`
-- `número de protocolo`
-- `já encontrei seu cadastro`
+| Padrão | Cobertura |
+|--------|-----------|
+| Auto-identificação virtual | "sou a/o/um/uma … assistente/analista/atendente/agente/colaborador(a) virtual" (qualquer empresa) |
+| Solicitação de CPF/CNPJ | "informe/confirme/digit[ae]/insira/envie/mand[ae] … CPF/CNPJ" |
+| Validação negativa de CPF/CNPJ | "esse/este/o/a CPF/CNPJ … inválido/incorreto/não encontrado" |
+| Pesquisa NPS | "nível de satisfação", "de 0 a 10 … avalia/classifica", "muito insatisfeito … muito satisfeito" |
+| 2ª via de conta | "2ª/segunda via de fatura(s)/conta(s)/boleto(s)/débito(s)" — concessionárias |
 
-**Fase 3** — Concessionárias e fraudes (identificados em análise forense de produção):
-- `sou a sani` (bot Sabesp)
-- `2ª via de faturas` (padrão de concessionária de água/energia/gás)
-- `é sua vez!` (fraude/spam promocional)
+**Literais — padrões únicos** (que não se generalizam via regex):
+- `maga.lu`, `política de privacidade do magalu` (Magalu/Lu)
+- `sou a sani`, `posso te ajudar com diversos serviços`, `não conseguimos identificar sua solicitação`,
+  `encerrado por inatividade` (Sabesp e concessionárias genéricas)
+- `lamentamos por sua experiência`, `agradecemos pelo seu tempo` (pós-atendimento CRM)
+- `link de pagamento gerado`, `queremos saber sua opinião`, `número de protocolo`,
+  `já encontrei seu cadastro`, `vou verificar se há alguma mensagem`, `desculpe, não entendi isso` (CRM)
+- `é sua vez!` (spam/promoção)
 - `não vamos seguir nesse momento com` (rejeição de CRM)
-- `esse cpf não é válido` (loop de validação de CPF por bot)
-- `esse cpf ou cnpj que você está` (variante CPFL do loop de CPF)
 
 ### Camada 3 — Circuit Breaker OOS (Proporcional)
 

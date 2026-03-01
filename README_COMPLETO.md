@@ -78,7 +78,7 @@ doacao-whatsapp/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── seed_ongs_v2.sql         # Seed de 52 ONGs (2026-02-28)
 │   └── seed_ongs_v3.sql         # Seed de 223 ONGs da ABONG (2026-02-28)
-├── tests/                       # 192 testes automatizados (99% cobertura)
+├── tests/                       # 207 testes automatizados (99% cobertura)
 ├── docs/
 │   ├── agent_graph.png          # Diagrama visual do grafo LangGraph
 │   ├── ARCHITECTURE.md
@@ -390,7 +390,7 @@ curl -s -X POST "https://api.render.com/v1/services/{SERVICE_ID}/deploys" \
 
 ## Testes
 
-O projeto possui **192 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
+O projeto possui **207 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
 
 ### Executar os Testes
 
@@ -621,6 +621,16 @@ Projeto desenvolvido pelo **Grupo 02** do MBA em Engenharia de Software — [Fac
 ---
 
 ## Changelog
+
+### [1.6.3] - 2026-03-01
+
+**Security**
+- Camada 2 refatorada com regex genérico: 5 padrões cobrem famílias inteiras de bots (auto-identificação virtual, solicitação CPF/CNPJ, validação CPF/CNPJ, NPS, 2ª via de conta) independentemente da empresa
+- Race condition no rate limiting corrigida: mensagem salva antes do check — elimina bypass concorrente identificado em produção (CPFL: 14 respostas em vez de 5)
+- 15 novos testes — total: **207 testes, 99% cobertura**
+
+**Fixed**
+- `EXTRACT_NAME_PROMPT` agora aceita nomes com 2+ letras (Lu, Ed, Lin, Ana) — previne loop de coleta de nome com usuários de nome curto
 
 ### [1.6.2] - 2026-03-01
 
