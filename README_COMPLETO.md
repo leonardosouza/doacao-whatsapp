@@ -73,7 +73,7 @@ doacao-whatsapp/
 │   └── generate_graph.py        # Exporta diagrama PNG do grafo LangGraph
 ├── alembic/
 │   ├── env.py                   # Configuração Alembic
-│   └── versions/                # Migrations (001 → 014)
+│   └── versions/                # Migrations (001 → 016)
 ├── data/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── seed_ongs_v2.sql         # Seed de 52 ONGs (2026-02-28)
