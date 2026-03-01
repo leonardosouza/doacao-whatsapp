@@ -2,7 +2,7 @@
 
 # Testes
 
-O projeto possui **162 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
+O projeto possui **192 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo (sem dependências externas).
 
 ## Executar os Testes
 

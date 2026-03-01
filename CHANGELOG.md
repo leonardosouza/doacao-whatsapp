@@ -5,6 +5,32 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adota o [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [1.6.0] - 2026-03-01
+
+### Added
+- **`GET /api/ongs?q=`**: busca livre por texto em `name` e `subcategory` via ILIKE — permite
+  consultas como `?q=lgbt`, `?q=meio+ambiente`, `?q=byler`. Combinável com `state`, `category`
+  etc. Metacaracteres `%`, `_` e `\` escapados por `_escape_like()`.
+- **`GET /api/ongs?name=`**: filtro por nome parcial (ILIKE), independente do `q`, para buscas
+  diretas por nome de ONG (`?name=byler` → ONG Byler).
+- **`_extract_state_from_text()`** em `app/agent/nodes.py`: extrai UF da mensagem do usuário via
+  sigla explícita (`SP`, `RJ`…) ou nome de cidade mapeado — 33 capitais e cidades populosas
+  (`"Florianópolis"→"SC"`, `"Piracicaba"→"SP"`, etc.).
+- **`_extract_category_hint()`** em `app/agent/nodes.py`: mapeia 50+ palavras-chave para
+  categorias canônicas (`"lgbt"→"LGBTQIA+"`, `"saude"→"Saúde"`, `"ambiental"→"Meio Ambiente"`,
+  `"criança"→"Educação"`, `"fome"→"Fome"`, etc.).
+- **`enrich_node` contextualizado**: para intents sem filtro rígido (Informação Geral, Ambíguo,
+  Voluntariado, Parceria), extrai estado e/ou categoria da mensagem e aplica na query de ONGs,
+  reduzindo o contexto de 30 → 15 ONGs quando há correspondência. Filtro de categoria restrito
+  ao intent `"Informação Geral"`; filtro de estado aplicado a todos os intents sem filtro rígido.
+- 30 novos testes: `_extract_state_from_text`, `_extract_category_hint`, `enrich_node`
+  contextualizado e query params `q` / `name` — total: **192 testes, 99% cobertura**.
+
+### Changed
+- `GET /api/ongs` documentado com tabela completa de parâmetros em `docs/API.md`.
+
+---
+
 ## [1.5.10] - 2026-02-28
 
 ### Security

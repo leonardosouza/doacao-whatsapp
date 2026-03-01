@@ -78,7 +78,7 @@ doacao-whatsapp/
 │   ├── BASE_INTERACTION.json    # Base de conhecimento RAG (65 interações)
 │   ├── seed_ongs_v2.sql         # Seed de 52 ONGs (2026-02-28)
 │   └── seed_ongs_v3.sql         # Seed de 223 ONGs da ABONG (2026-02-28)
-├── tests/                       # 164 testes automatizados (99% cobertura)
+├── tests/                       # 192 testes automatizados (99% cobertura)
 ├── docs/
 │   ├── agent_graph.png          # Diagrama visual do grafo LangGraph
 │   ├── ARCHITECTURE.md
@@ -175,7 +175,7 @@ O grafo possui dois caminhos a partir do nó `profile`:
 | `GET` | `/api/health` | Health check (verifica banco de dados e Z-API) |
 | `POST` | `/api/health` | Health check via POST (para monitor sintético New Relic) |
 | `POST` | `/api/webhook` | Recebe mensagens do Z-API |
-| `GET` | `/api/ongs` | Lista todas as ONGs parceiras |
+| `GET` | `/api/ongs` | Lista ONGs (filtros: `category`, `state`, `city`, `q`, `name`) |
 | `GET` | `/api/ongs/{id}` | Retorna uma ONG pelo ID |
 | `POST` | `/api/ongs` | Cadastra nova ONG parceira 🔒 |
 | `PUT` | `/api/ongs/{id}` | Atualiza dados de uma ONG 🔒 |
@@ -184,6 +184,21 @@ O grafo possui dois caminhos a partir do nó `profile`:
 | `GET` | `/redoc` | Documentação ReDoc (apenas quando `DEBUG=True`) |
 
 > 🔒 Rotas protegidas por API Key. Envie o header `X-API-Key` com a chave configurada em `API_KEY`.
+
+### GET /api/ongs — Parâmetros de Busca
+
+| Parâmetro | Tipo | Descrição | Exemplo |
+|-----------|------|-----------|---------|
+| `category` | string | Filtro por categoria (ILIKE) | `?category=Saúde` |
+| `state` | string | Filtro por UF — exato, 2 letras | `?state=SP` |
+| `city` | string | Filtro por cidade (ILIKE) | `?city=São Paulo` |
+| `q` | string | Busca livre em **nome** e **subcategoria** (ILIKE) | `?q=lgbt`, `?q=meio+ambiente` |
+| `name` | string | Filtro por nome parcial (ILIKE) | `?name=byler` |
+| `active_only` | bool | Apenas ONGs ativas (padrão: `true`) | `?active_only=false` |
+| `skip` | int | Offset para paginação (padrão: `0`) | `?skip=50` |
+| `limit` | int | Máximo de resultados — 1 a 100 (padrão: `50`) | `?limit=20` |
+
+Os parâmetros são combináveis: `?q=lgbt&state=SP` retorna ONGs LGBTQIA+ em SP.
 
 ### Autenticação
 
@@ -375,7 +390,7 @@ curl -s -X POST "https://api.render.com/v1/services/{SERVICE_ID}/deploys" \
 
 ## Testes
 
-O projeto possui **164 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
+O projeto possui **192 testes automatizados** com **99% de cobertura**, utilizando SQLite in-memory para isolamento completo.
 
 ### Executar os Testes
 
